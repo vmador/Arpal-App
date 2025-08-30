@@ -1,0 +1,26 @@
+{
+    "name": "Aural",
+    "short_name": "Aural",
+    "description": "Soundscapes and Meditations",
+    "start_url": "/aural/",
+    "scope": "/aural/",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#000000",
+    "icons": [
+        {
+            "src": "/aural/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/aural/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "orientation": "portrait",
+    "prefer_related_applications": false
+}
