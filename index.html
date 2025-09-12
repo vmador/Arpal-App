@@ -3,25 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Arpal Soundscapes</title>
-  <meta name="description" content="Soundscapes and Meditations">
+  <title>Arpal - Soundscapes</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png">
   <link rel="apple-touch-icon" href="/icon-192x192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#FFFFFF">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="arpal">
-  <meta property="og:title" content="arpal">
-  <meta property="og:description" content="Soundscapes and Meditations">
-  <meta property="og:image" content="/social-preview.png">
-  <meta property="og:url" content="https://arpaldsn.com/">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="arpal">
-  <meta name="twitter:description" content="Soundscapes and Meditations">
-  <meta name="twitter:image" content="/social-preview.png">
+  <meta name="apple-mobile-web-app-title" content="Arpal Sounds">
+  <meta name="description" content="Arpal Sounds">
 
   <style>
     body, html {
@@ -48,13 +40,149 @@
       }
     }
   </style>
+
+  <!-- OneSignal -->
+  <script>
+    window.OneSignal = window.OneSignal || {};
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalProxy = null; // Inicializar como null
+  </script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    // Función para crear OneSignalProxy cuando OneSignal esté listo
+    function createOneSignalProxy() {
+      console.log('Creando OneSignalProxy...');
+      
+      window.OneSignalProxy = {
+        async isPushEnabled() {
+          console.log('OneSignalProxy.isPushEnabled called');
+          if (window.OneSignal && typeof window.OneSignal.isPushNotificationsEnabled === 'function') {
+            try {
+              const result = await window.OneSignal.isPushNotificationsEnabled();
+              console.log('OneSignal.isPushNotificationsEnabled result:', result);
+              return result;
+            } catch (error) {
+              console.error('Error checking OneSignal push status:', error);
+              return false;
+            }
+          }
+          console.warn('OneSignal not ready for isPushEnabled');
+          return false;
+        },
+        
+        async showNativePrompt(userId) {
+          console.log('OneSignalProxy.showNativePrompt called with userId:', userId);
+          if (window.OneSignal && typeof window.OneSignal.showNativePrompt === 'function') {
+            try {
+              console.log('Showing OneSignal native prompt...');
+              await window.OneSignal.showNativePrompt();
+              
+              // Esperar un poco para que el usuario responda al prompt
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              const isEnabled = await window.OneSignal.isPushNotificationsEnabled();
+              console.log('Permission status after prompt:', isEnabled);
+              
+              if (isEnabled && userId) {
+                console.log('Setting external user ID:', userId);
+                await window.OneSignal.setExternalUserId(userId);
+              }
+              
+              return isEnabled;
+            } catch (error) {
+              console.error('Error showing OneSignal prompt:', error);
+              return false;
+            }
+          }
+          console.warn('OneSignal not ready for showNativePrompt');
+          return false;
+        },
+        
+        async setExternalUserId(userId) {
+          console.log('OneSignalProxy.setExternalUserId called with userId:', userId);
+          if (window.OneSignal && typeof window.OneSignal.setExternalUserId === 'function' && userId) {
+            try {
+              await window.OneSignal.setExternalUserId(userId);
+              console.log('External user ID set successfully:', userId);
+              return true;
+            } catch (error) {
+              console.error('Error setting OneSignal external user ID:', error);
+              return false;
+            }
+          }
+          console.warn('OneSignal not ready for setExternalUserId or invalid userId');
+          return false;
+        }
+      };
+      
+      console.log('OneSignalProxy created successfully:', window.OneSignalProxy);
+    }
+
+    function ensureOneSignalIsGlobal() {
+      console.log('ensureOneSignalIsGlobal called');
+      
+      if (!window.OneSignal) {
+        window.OneSignal = window.OneSignal || {};
+      }
+      
+      window.OneSignalDeferred.push(function() {
+        console.log('OneSignal deferred function executing...');
+        
+        window.OneSignal.init({
+          appId: "a18ba484-72a8-4fe3-b51c-7eecfcf51199",
+          notifyButton: { enable: false },
+          allowLocalhostAsSecureOrigin: true,
+          serviceWorkerParam: { scope: "/" },
+          serviceWorkerPath: "/OneSignalSDKWorker.js",
+        });
+        
+        // Intentar crear OneSignalProxy inmediatamente y luego en intervalos
+        const tryCreateProxy = () => {
+          if (window.OneSignal && window.OneSignal.isPushNotificationsEnabled) {
+            console.log('OneSignal está listo, creando proxy...');
+            window.oneSignalInitialized = true;
+            createOneSignalProxy();
+            
+            const event = new CustomEvent('onesignalInitialized');
+            window.dispatchEvent(event);
+            console.log('OneSignal inicializado correctamente');
+            return true;
+          }
+          return false;
+        };
+        
+        // Intentar inmediatamente
+        if (!tryCreateProxy()) {
+          // Si no funciona, intentar cada 500ms hasta 10 veces
+          let attempts = 0;
+          const interval = setInterval(() => {
+            attempts++;
+            console.log(`Intento ${attempts} de crear OneSignalProxy...`);
+            
+            if (tryCreateProxy() || attempts >= 10) {
+              clearInterval(interval);
+              if (attempts >= 10) {
+                console.error('No se pudo crear OneSignalProxy después de 10 intentos');
+                // Crear proxy básico como fallback
+                createOneSignalProxy();
+              }
+            }
+          }, 500);
+        }
+      });
+    }
+    
+    ensureOneSignalIsGlobal();
+    document.addEventListener('DOMContentLoaded', ensureOneSignalIsGlobal);
+    setTimeout(ensureOneSignalIsGlobal, 2000);
+  </script>
 </head>
 <body>
   <iframe 
     id="framerContent" 
     src="https://arpalapp.framer.website" 
     allowfullscreen 
-    allow="geolocation; camera; microphone; storage-access"
+    allow="geolocation; camera; microphone; storage-access; notifications"
     sandbox="allow-same-origin allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
   ></iframe>
 
@@ -64,10 +192,6 @@
       const iframe = document.getElementById('framerContent');
       const targetOrigin = 'https://arpalapp.framer.website';
 
-      // Variables para manejo de OAuth popup
-      let activeOAuthPopup = null;
-      let oauthMessageListener = null;
-
       function sendMessageToIframe(message) {
         if (iframe && iframe.contentWindow) {
           console.log('Sending message to iframe:', message.type);
@@ -75,111 +199,6 @@
         } else {
           console.error('No se pudo enviar mensaje al iframe');
         }
-      }
-
-      // Función para manejar popup OAuth
-      function handleOAuthPopup(popupUrl, popupOptions) {
-        console.log('PWA: Abriendo popup OAuth:', popupUrl);
-        
-        // Cerrar popup anterior si existe
-        if (activeOAuthPopup && !activeOAuthPopup.closed) {
-          activeOAuthPopup.close();
-        }
-        
-        // Abrir nuevo popup
-        activeOAuthPopup = window.open(popupUrl, 'oauth-popup', popupOptions);
-        
-        if (!activeOAuthPopup) {
-          console.error('PWA: No se pudo abrir popup, usando redirect');
-          
-          // Notificar al iframe que el popup falló
-          sendMessageToIframe({
-            type: 'OAUTH_POPUP_FAILED',
-            fallbackUrl: popupUrl
-          });
-          return;
-        }
-        
-        // Cleanup función anterior si existe
-        if (oauthMessageListener) {
-          window.removeEventListener('message', oauthMessageListener);
-        }
-        
-        // Nueva función para escuchar mensajes del popup
-        oauthMessageListener = (event) => {
-          console.log('PWA: Mensaje recibido de popup:', event.origin, event.data);
-          
-          // Verificar origen del callback
-          const allowedCallbackOrigins = [
-            'https://arpaldsn.com',
-            'https://arpalapp.framer.website'
-          ];
-          
-          const isValidCallbackOrigin = allowedCallbackOrigins.some(origin => 
-            event.origin === origin || 
-            event.origin.includes('arpaldsn.com') ||
-            event.origin.includes('framer.website')
-          );
-          
-          if (!isValidCallbackOrigin) {
-            console.log('PWA: Origen de callback no válido:', event.origin);
-            return;
-          }
-          
-          // Filtrar solo mensajes de OAuth
-          if (event.data && (
-            event.data.type === 'SUPABASE_AUTH_SUCCESS' ||
-            event.data.type === 'SUPABASE_AUTH_ERROR'
-          )) {
-            console.log('PWA: Reenviando mensaje OAuth a iframe:', event.data);
-            
-            // Reenviar mensaje al iframe de Framer
-            sendMessageToIframe(event.data);
-            
-            // Cleanup
-            window.removeEventListener('message', oauthMessageListener);
-            oauthMessageListener = null;
-            
-            if (activeOAuthPopup && !activeOAuthPopup.closed) {
-              activeOAuthPopup.close();
-            }
-            activeOAuthPopup = null;
-          }
-        };
-        
-        window.addEventListener('message', oauthMessageListener);
-        
-        // Monitor cierre de popup
-        const checkClosed = setInterval(() => {
-          if (activeOAuthPopup.closed) {
-            clearInterval(checkClosed);
-            console.log('PWA: Popup OAuth cerrado');
-            
-            if (oauthMessageListener) {
-              window.removeEventListener('message', oauthMessageListener);
-              oauthMessageListener = null;
-            }
-            
-            // Notificar al iframe que el popup se cerró sin completar auth
-            sendMessageToIframe({
-              type: 'OAUTH_POPUP_CLOSED'
-            });
-            
-            activeOAuthPopup = null;
-          }
-        }, 1000);
-        
-        // Timeout de seguridad (5 minutos)
-        setTimeout(() => {
-          if (activeOAuthPopup && !activeOAuthPopup.closed) {
-            console.log('PWA: Timeout de OAuth popup alcanzado');
-            activeOAuthPopup.close();
-            
-            sendMessageToIframe({
-              type: 'OAUTH_POPUP_TIMEOUT'
-            });
-          }
-        }, 300000);
       }
 
       window.addEventListener('message', function(event) {
@@ -211,37 +230,95 @@
                 });
                 break;
                 
-              // CASO ESPECÍFICO PARA OAUTH POPUP
-              case 'OPEN_OAUTH_POPUP':
-                console.log('PWA: Solicitud de popup OAuth recibida');
-                if (event.data.url && event.data.options) {
-                  handleOAuthPopup(event.data.url, event.data.options);
-                } else {
-                  console.error('PWA: Datos incompletos para popup OAuth');
-                }
-                break;
-
-              // CASO PARA REDIRECT OAUTH
-              case 'OAUTH_REDIRECT':
-                console.log('PWA: Redirect OAuth recibido:', event.data.url);
-                if (event.data.url) {
-                  window.location.href = event.data.url;
-                } else {
-                  console.error('PWA: URL de redirect no proporcionada');
-                }
-                break;
-
-              // CASO GENÉRICO PARA POPUPS (mantener compatibilidad)
               case 'openPopup':
                 if (event.data.url) {
                   window.open(event.data.url, "_blank", "width=600,height=700");
                 }
                 break;
 
-              // CASOS LEGACY DE SESIÓN (mantener compatibilidad)
-              case 'sessionData':
-                // Legacy support para apps que usen el formato anterior
-                localStorage.setItem('sessionData', JSON.stringify(event.data.sessionData));
+              // Casos para OneSignal
+              case 'oneSignalIsPushEnabled':
+                console.log('Processing oneSignalIsPushEnabled request');
+                if (window.OneSignalProxy && typeof window.OneSignalProxy.isPushEnabled === 'function') {
+                  window.OneSignalProxy.isPushEnabled().then(result => {
+                    console.log('oneSignalIsPushEnabled result:', result);
+                    sendMessageToIframe({
+                      type: 'oneSignalIsPushEnabledResponse',
+                      requestId: event.data.requestId,
+                      result: result
+                    });
+                  }).catch(error => {
+                    console.error('Error handling oneSignalIsPushEnabled:', error);
+                    sendMessageToIframe({
+                      type: 'oneSignalIsPushEnabledResponse',
+                      requestId: event.data.requestId,
+                      result: false
+                    });
+                  });
+                } else {
+                  console.error('OneSignalProxy not available for isPushEnabled');
+                  sendMessageToIframe({
+                    type: 'oneSignalIsPushEnabledResponse',
+                    requestId: event.data.requestId,
+                    result: false
+                  });
+                }
+                break;
+
+              case 'oneSignalShowPrompt':
+                console.log('Processing oneSignalShowPrompt request');
+                if (window.OneSignalProxy && typeof window.OneSignalProxy.showNativePrompt === 'function') {
+                  window.OneSignalProxy.showNativePrompt(event.data.userId).then(result => {
+                    console.log('oneSignalShowPrompt result:', result);
+                    sendMessageToIframe({
+                      type: 'oneSignalShowPromptResponse',
+                      requestId: event.data.requestId,
+                      result: result
+                    });
+                  }).catch(error => {
+                    console.error('Error handling oneSignalShowPrompt:', error);
+                    sendMessageToIframe({
+                      type: 'oneSignalShowPromptResponse',
+                      requestId: event.data.requestId,
+                      result: false
+                    });
+                  });
+                } else {
+                  console.error('OneSignalProxy not available for showNativePrompt');
+                  sendMessageToIframe({
+                    type: 'oneSignalShowPromptResponse',
+                    requestId: event.data.requestId,
+                    result: false
+                  });
+                }
+                break;
+
+              case 'oneSignalSetUserId':
+                console.log('Processing oneSignalSetUserId request');
+                if (window.OneSignalProxy && typeof window.OneSignalProxy.setExternalUserId === 'function') {
+                  window.OneSignalProxy.setExternalUserId(event.data.userId).then(result => {
+                    console.log('oneSignalSetUserId result:', result);
+                    sendMessageToIframe({
+                      type: 'oneSignalSetUserIdResponse',
+                      requestId: event.data.requestId,
+                      result: result
+                    });
+                  }).catch(error => {
+                    console.error('Error handling oneSignalSetUserId:', error);
+                    sendMessageToIframe({
+                      type: 'oneSignalSetUserIdResponse',
+                      requestId: event.data.requestId,
+                      result: false
+                    });
+                  });
+                } else {
+                  console.error('OneSignalProxy not available for setExternalUserId');
+                  sendMessageToIframe({
+                    type: 'oneSignalSetUserIdResponse',
+                    requestId: event.data.requestId,
+                    result: false
+                  });
+                }
                 break;
 
               default:
@@ -256,14 +333,7 @@
 
       function restoreSession() {
         try {
-          // Intentar con el nuevo formato primero
-          let sessionData = localStorage.getItem(SESSION_KEY);
-          
-          // Fallback al formato legacy
-          if (!sessionData) {
-            sessionData = localStorage.getItem('sessionData');
-          }
-          
+          const sessionData = localStorage.getItem(SESSION_KEY);
           if (sessionData) {
             setTimeout(() => {
               sendMessageToIframe({
@@ -277,20 +347,17 @@
         }
       }
 
-      // Manejar visibilidad para restaurar sesión
       document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
           restoreSession();
         }
       });
 
-      // Cuando el iframe carga
       iframe.onload = function() { 
         console.log('Iframe loaded');
         restoreSession(); 
       };
 
-      // Service Worker
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
           navigator.serviceWorker.register('/service-worker.js')
@@ -303,20 +370,19 @@
         });
       }
 
-      // Log de depuración
-      console.log('Arpal PWA Script initialized');
-      console.log('Target iframe origin:', targetOrigin);
-      console.log('Session key:', SESSION_KEY);
+      // Log de depuración mejorado
+      console.log('PWA Script initialized');
+      console.log('OneSignal available:', !!window.OneSignalDeferred);
       
       // Verificar estado cada 3 segundos durante los primeros 15 segundos
       let checkCount = 0;
       const statusChecker = setInterval(() => {
         checkCount++;
-        console.log(`[${checkCount}] PWA status:`, {
-          iframe: !!iframe,
-          sessionData: !!localStorage.getItem(SESSION_KEY),
-          activeOAuthPopup: !!activeOAuthPopup,
-          oauthListener: !!oauthMessageListener
+        console.log(`[${checkCount}] OneSignal status:`, {
+          OneSignal: !!window.OneSignal,
+          OneSignalDeferred: !!window.OneSignalDeferred,
+          OneSignalProxy: !!window.OneSignalProxy,
+          oneSignalInitialized: !!window.oneSignalInitialized
         });
         
         if (checkCount >= 5) {
