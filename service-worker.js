@@ -1,10 +1,10 @@
-const CACHE_NAME = 'Aural-pwa-cache-v2';
+const CACHE_NAME = 'aural-pwa-cache-v2';
 const urlsToCache = [
-    '/aural/',
-    '/aural/index.html',
-    '/aural/manifest.json',
-    '/aural/icon-192x192.png',
-    '/aural/icon-512x512.png'
+    '/',
+    '/index.html',
+    '/manifest.json',
+    '/icon-192x192.png',
+    '/icon-512x512.png'
 ];
 
 self.addEventListener('install', (event) => {
