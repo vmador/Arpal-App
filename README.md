@@ -1,2 +1,2 @@
-# aural
+# Arpal
 Soundscapes and Meditations
