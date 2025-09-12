@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>aural</title>
+    <title>Arpal Soundscapes</title>
     <meta name="description" content="Soundscapes and Meditations">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png">
@@ -13,32 +13,32 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="aural">
-    <meta property="og:title" content="aural">
+    <meta name="apple-mobile-web-app-title" content="arpal">
+    <meta property="og:title" content="arpal">
     <meta property="og:description" content="Soundscapes and Meditations">
     <meta property="og:image" content="/social-preview.png">
-    <meta property="og:url" content="https://auralapp.framer.website">
+    <meta property="og:url" content="https://arpalapp.framer.website">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="aural">
+    <meta name="twitter:title" content="arpal">
     <meta name="twitter:description" content="Soundscapes and Meditations">
     <meta name="twitter:image" content="/social-preview.png">
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" sizes="192x192" href="/aural/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/aural/icon-512x512.png">
-    <link rel="apple-touch-icon" href="/aural/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/arpal/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/arpal/icon-512x512.png">
+    <link rel="apple-touch-icon" href="/arpal/icon-192x192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Aural">
-    <meta property="og:title" content="Aural">
+    <meta name="apple-mobile-web-app-title" content="arpal">
+    <meta property="og:title" content="arpal">
     <meta property="og:description" content="Soundscapes and Meditations">
-    <meta property="og:image" content="/aural/social-preview.png">
-    <meta property="og:url" content="https://auralapp.framer.website">
+    <meta property="og:image" content="/arpal/social-preview.png">
+    <meta property="og:url" content="https://arpalapp.framer.website">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Aural">
+    <meta name="twitter:title" content="arpal">
     <meta name="twitter:description" content="Soundscapes and Meditations">
-    <meta name="twitter:image" content="/aural/social-preview.png">
+    <meta name="twitter:image" content="/arpal/social-preview.png">
     <style>
         body, html { 
             margin: 0; 
@@ -94,17 +94,17 @@
     </style>
 </head>
 <body>
-    <iframe id="framerContent" src="https://auralapp.framer.website/" allowfullscreen allow="geolocation; camera; microphone; storage-access"></iframe>
+    <iframe id="framerContent" src="https://arpalapp.framer.website/" allowfullscreen allow="geolocation; camera; microphone; storage-access"></iframe>
     
     
     <script>
     function sendMessageToIframe(message) {
         const iframe = document.getElementById('framerContent');
-        iframe.contentWindow.postMessage(message, 'https://auralapp.framer.website/');
+        iframe.contentWindow.postMessage(message, 'https://arpalapp.framer.website/');
     }
     
     window.addEventListener('message', function(event) {
-        if (event.origin !== "https://auralapp.framer.website/") return;
+        if (event.origin !== "https://arpalapp.framer.website/") return;
         
         if (event.data.type === 'setSessionData') {
             localStorage.setItem('sessionData', JSON.stringify(event.data.sessionData));
