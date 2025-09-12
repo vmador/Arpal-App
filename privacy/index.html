@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Arpal - Privacy</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png" />
+  <link rel="apple-touch-icon" href="/icon-192x192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#FFFFFF" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Arpal" />
+  <meta name="description" content="Arpal Soundscapes" />
+  <style>
+    body, html {
+      margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #FFFFFF;
+    }
+    iframe {
+      width: 100vw;
+      height: 100vh;
+      border: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+    }
+    @supports(padding: max(0px)) {
+      body, iframe {
+        padding-top: env(safe-area-inset-top);
+        height: calc(100vh - env(safe-area-inset-top));
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <iframe
+    id="framerContent"
+    allowfullscreen
+    allow="geolocation; camera; microphone; storage-access"
+  ></iframe>
+
+  <script>
+    // Carga en el iframe la URL de Framer correspondiente a la ruta actual
+    const path = window.location.pathname;
+    const iframe = document.getElementById('framerContent');
+    iframe.src = 'https://arpalapp.framer.website' + path;
+
+    // Envío y recepción de mensajes para sincronizar sessionData
+    function sendMessageToIframe(message) {
+      iframe.contentWindow.postMessage(message, 'https://arpalapp.framer.website');
+    }
+
+    window.addEventListener('message', function(event) {
+      if (!event.origin.startsWith('https://arpalapp.framer.website')) return;
+
+      if (event.data.type === 'setSessionData') {
+        localStorage.setItem('sessionData', JSON.stringify(event.data.sessionData));
+      } else if (event.data.type === 'getSessionData') {
+        const sessionData = localStorage.getItem('sessionData');
+        sendMessageToIframe({
+          type: 'sessionDataResponse',
+          sessionData: sessionData ? JSON.parse(sessionData) : null
+        });
+      }
+    }, false);
+
+    window.addEventListener('load', function() {
+      const sessionData = localStorage.getItem('sessionData');
+      if (sessionData) {
+        sendMessageToIframe({
+          type: 'restoreSession',
+          sessionData: JSON.parse(sessionData)
+        });
+      }
+    });
+
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        const sessionData = localStorage.getItem('sessionData');
+        if (sessionData) {
+          sendMessageToIframe({
+            type: 'restoreSession',
+            sessionData: JSON.parse(sessionData)
+          });
+        }
+      }
+    });
+
+    // Registro de Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/arpal/service-worker.js').then(function(registration) {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, function(err) {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+  </script>
+
+  <script>
+    // Actualiza el favicon con el día del mes, respetando modo claro/oscuro
+    function updateFaviconWithDay() {
+      const day = new Date().getDate();
+      const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      const bgColor = isDarkMode ? '#111' : '#fff';
+      const textColor = isDarkMode ? '#fff' : '#000';
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = textColor;
+      ctx.font = 'bold 36px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(day, canvas.width / 2, canvas.height / 2);
+      const faviconURL = canvas.toDataURL('image/png');
+      let link = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+      }
+      link.href = faviconURL;
+    }
+
+    window.addEventListener('load', () => {
+      updateFaviconWithDay();
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateFaviconWithDay);
+    });
+  </script>
+
+</body>
+</html>
