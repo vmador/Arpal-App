@@ -3,8 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Aural</title>
+    <title>aural</title>
     <meta name="description" content="Soundscapes and Meditations">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png">
+    <link rel="apple-touch-icon" href="/icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="aural">
+    <meta property="og:title" content="aural">
+    <meta property="og:description" content="Soundscapes and Meditations">
+    <meta property="og:image" content="/social-preview.png">
+    <meta property="og:url" content="https://auralapp.framer.website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="aural">
+    <meta name="twitter:description" content="Soundscapes and Meditations">
+    <meta name="twitter:image" content="/social-preview.png">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="/aural/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/aural/icon-512x512.png">
@@ -22,7 +39,6 @@
     <meta name="twitter:title" content="Aural">
     <meta name="twitter:description" content="Soundscapes and Meditations">
     <meta name="twitter:image" content="/aural/social-preview.png">
-    
     <style>
         body, html { 
             margin: 0; 
@@ -31,6 +47,25 @@
             overflow: hidden; 
             background-color: #000000; 
         }
+        iframe { 
+            width: 100lvw; 
+            height: 100dvh; 
+            border: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+        }
+        
+        /* Safe Area Mode (Sone style) */
+        @supports(padding: max(0px)) {
+            body, iframe { 
+                padding-top: env(safe-area-inset-top); 
+                height: calc(100dvh - env(safe-area-inset-top)); 
+            }
+        }
+        
         iframe { 
             width: 100lvw; 
             height: 100lvh; 
@@ -56,8 +91,6 @@
                 overflow: hidden !important;
             }
         }
-        
-        
     </style>
 </head>
 <body>
@@ -108,7 +141,7 @@
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/aural/service-worker.js').then(function(registration) {
+            navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
                 // Registration successful
             }, function(err) {
                 // Registration failed
@@ -122,7 +155,7 @@
         document.documentElement.style.setProperty('--dvh', window.innerHeight + 'px');
     }
 
-    if ('lvh' === 'dvh') {
+    if ('dvh' === 'dvh') {
         // Set initial value
         updateViewportHeight();
         
