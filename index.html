@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Arpal - Soundscapes</title>
+  <title>Arpal Sounds</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png">
   <link rel="apple-touch-icon" href="/icon-192x192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#FFFFFF">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Arpal Sounds">
-  <meta name="description" content="Arpal Soundscapes">
+  <meta name="apple-mobile-web-app-title" content="Arpal">
+  <meta name="description" content="Soundscapes and Meditations">
 
   <style>
     body, html {
@@ -45,10 +45,11 @@
   <script>
     window.OneSignal = window.OneSignal || {};
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalProxy = null;
+    window.OneSignalProxy = null; // Inicializar como null
   </script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
+    // Función para crear OneSignalProxy cuando OneSignal esté listo
     function createOneSignalProxy() {
       console.log('Creando OneSignalProxy...');
       
@@ -76,6 +77,7 @@
               console.log('Showing OneSignal native prompt...');
               await window.OneSignal.showNativePrompt();
               
+              // Esperar un poco para que el usuario responda al prompt
               await new Promise(resolve => setTimeout(resolve, 2000));
               
               const isEnabled = await window.OneSignal.isPushNotificationsEnabled();
@@ -134,6 +136,7 @@
           serviceWorkerPath: "/OneSignalSDKWorker.js",
         });
         
+        // Intentar crear OneSignalProxy inmediatamente y luego en intervalos
         const tryCreateProxy = () => {
           if (window.OneSignal && window.OneSignal.isPushNotificationsEnabled) {
             console.log('OneSignal está listo, creando proxy...');
@@ -148,7 +151,9 @@
           return false;
         };
         
+        // Intentar inmediatamente
         if (!tryCreateProxy()) {
+          // Si no funciona, intentar cada 500ms hasta 10 veces
           let attempts = 0;
           const interval = setInterval(() => {
             attempts++;
@@ -158,6 +163,7 @@
               clearInterval(interval);
               if (attempts >= 10) {
                 console.error('No se pudo crear OneSignalProxy después de 10 intentos');
+                // Crear proxy básico como fallback
                 createOneSignalProxy();
               }
             }
@@ -169,137 +175,6 @@
     ensureOneSignalIsGlobal();
     document.addEventListener('DOMContentLoaded', ensureOneSignalIsGlobal);
     setTimeout(ensureOneSignalIsGlobal, 2000);
-  </script>
-
-  <!-- Google Identity Services (One Tap) -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script>
-    const GOOGLE_CLIENT_ID = '128702120267-c72fcli9sl81t54pkrqu745dcpfeb3ud.apps.googleusercontent.com';
-    const GOOGLE_IFRAME_ORIGIN = 'https://arpalapp.framer.website';
-    
-    let oneTapInitialized = false;
-    let oneTapAttempts = 0;
-    const MAX_ONETAP_ATTEMPTS = 3;
-
-    function tryPostTokenToIframe(id_token, isRetry = false) {
-      const iframe = document.getElementById('framerContent');
-      if (iframe && iframe.contentWindow) {
-        try {
-          iframe.contentWindow.postMessage({
-            type: 'googleOneTap',
-            token: id_token,
-            isRetry: isRetry
-          }, GOOGLE_IFRAME_ORIGIN);
-          console.log('Google One Tap token enviado al iframe', isRetry ? '(retry)' : '');
-          return true;
-        } catch (err) {
-          console.warn('Error enviando One Tap token al iframe:', err);
-          return false;
-        }
-      }
-      console.warn('Iframe no listo para recibir One Tap token');
-      return false;
-    }
-
-    function handleCredentialResponse(response) {
-      const id_token = response.credential;
-      console.log('Google One Tap credential received, attempt:', oneTapAttempts + 1);
-      oneTapAttempts++;
-
-      localStorage.removeItem('pendingOneTapToken');
-      
-      if (!tryPostTokenToIframe(id_token)) {
-        localStorage.setItem('pendingOneTapToken', id_token);
-        localStorage.setItem('oneTapAttempts', oneTapAttempts.toString());
-        console.log('One Tap token guardado en localStorage, attempt:', oneTapAttempts);
-      }
-    }
-
-    function retryOneTap() {
-      if (oneTapAttempts < MAX_ONETAP_ATTEMPTS && oneTapInitialized) {
-        console.log('Reactivando Google One Tap, attempt:', oneTapAttempts + 1);
-        setTimeout(() => {
-          if (window.google && window.google.accounts && window.google.accounts.id) {
-            google.accounts.id.prompt((notification) => {
-              if (notification.isNotDisplayed()) {
-                console.log('One Tap retry no mostrado:', notification.getNotDisplayedReason());
-              }
-            });
-          }
-        }, 2000);
-      } else {
-        console.log('Max One Tap attempts reached or not initialized');
-      }
-    }
-
-    function showOneTap() {
-      if (window.google && window.google.accounts && window.google.accounts.id && oneTapAttempts < MAX_ONETAP_ATTEMPTS) {
-        console.log('Mostrando Google One Tap prompt manualmente...');
-        google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed()) {
-            console.log('One Tap manual no se mostró:', notification.getNotDisplayedReason());
-          } else if (notification.isSkippedMoment()) {
-            console.log('One Tap manual fue omitido:', notification.getSkippedReason());
-          }
-        });
-      }
-    }
-
-    function resetOneTapAttempts() {
-      oneTapAttempts = 0;
-      localStorage.removeItem('oneTapAttempts');
-      localStorage.removeItem('pendingOneTapToken');
-      console.log('One Tap attempts reset');
-    }
-
-    function initGoogleOneTapOnceReady() {
-      const init = () => {
-        if (!window.google || !window.google.accounts || !window.google.accounts.id) {
-          console.warn('GSI aún no disponible, reintentando...');
-          return false;
-        }
-
-        const storedAttempts = localStorage.getItem('oneTapAttempts');
-        if (storedAttempts) {
-          oneTapAttempts = parseInt(storedAttempts, 10);
-        }
-
-        google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleCredentialResponse,
-          auto_select: false,
-          cancel_on_tap_outside: false,
-        });
-
-        if (oneTapAttempts < MAX_ONETAP_ATTEMPTS) {
-          google.accounts.id.prompt((notification) => {
-            if (notification.isNotDisplayed()) {
-              console.log('One Tap no se mostró:', notification.getNotDisplayedReason());
-            } else if (notification.isSkippedMoment()) {
-              console.log('One Tap fue omitido:', notification.getSkippedReason());
-            } else if (notification.isDismissedMoment()) {
-              console.log('One Tap fue cerrado:', notification.getDismissedReason());
-            }
-          });
-        }
-        
-        oneTapInitialized = true;
-        console.log('Google One Tap inicializado correctamente');
-        return true;
-      };
-
-      if (!init()) {
-        const check = setInterval(() => {
-          if (init()) clearInterval(check);
-        }, 300);
-      }
-    }
-
-    window.showGoogleOneTap = showOneTap;
-    window.retryOneTap = retryOneTap;
-    window.resetOneTapAttempts = resetOneTapAttempts;
-
-    document.addEventListener('DOMContentLoaded', initGoogleOneTapOnceReady);
   </script>
 </head>
 <body>
@@ -361,20 +236,7 @@
                 }
                 break;
 
-              case 'triggerOneTap':
-                showOneTap();
-                break;
-
-              case 'retryOneTap':
-                console.log('Retry One Tap requested from iframe');
-                retryOneTap();
-                break;
-
-              case 'resetOneTapAttempts':
-                console.log('Reset One Tap attempts requested from iframe');
-                resetOneTapAttempts();
-                break;
-
+              // Casos para OneSignal
               case 'oneSignalIsPushEnabled':
                 console.log('Processing oneSignalIsPushEnabled request');
                 if (window.OneSignalProxy && typeof window.OneSignalProxy.isPushEnabled === 'function') {
@@ -493,38 +355,7 @@
 
       iframe.onload = function() { 
         console.log('Iframe loaded');
-        restoreSession();
-
-        try {
-          const pendingOAuth = localStorage.getItem('pendingGoogleToken');
-          if (pendingOAuth) {
-            console.log('Enviando pendingGoogleToken al iframe');
-            sendMessageToIframe({
-              type: 'googleLogin',
-              token: pendingOAuth
-            });
-            localStorage.removeItem('pendingGoogleToken');
-          }
-        } catch (err) {
-          console.error('Error enviando pending OAuth token:', err);
-        }
-
-        try {
-          const pendingOneTap = localStorage.getItem('pendingOneTapToken');
-          const attempts = localStorage.getItem('oneTapAttempts');
-          
-          if (pendingOneTap) {
-            console.log('Enviando pendingOneTapToken al iframe, attempt:', attempts || '1');
-            sendMessageToIframe({
-              type: 'googleOneTap',
-              token: pendingOneTap,
-              isRetry: attempts && parseInt(attempts) > 1
-            });
-            localStorage.removeItem('pendingOneTapToken');
-          }
-        } catch (err) {
-          console.error('Error enviando pending One Tap token:', err);
-        }
+        restoreSession(); 
       };
 
       if ('serviceWorker' in navigator) {
@@ -539,9 +370,11 @@
         });
       }
 
+      // Log de depuración mejorado
       console.log('PWA Script initialized');
       console.log('OneSignal available:', !!window.OneSignalDeferred);
       
+      // Verificar estado cada 3 segundos durante los primeros 15 segundos
       let checkCount = 0;
       const statusChecker = setInterval(() => {
         checkCount++;
