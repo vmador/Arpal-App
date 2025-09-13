@@ -176,6 +176,74 @@
     document.addEventListener('DOMContentLoaded', ensureOneSignalIsGlobal);
     setTimeout(ensureOneSignalIsGlobal, 2000);
   </script>
+
+  <!-- Google Identity Services (One Tap) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    // --- CONFIG: cambia esto por tu Client ID público ---
+    const GOOGLE_CLIENT_ID = '128702120267-c72fcli9sl81t54pkrqu745dcpfeb3ud.apps.googleusercontent.com';
+    const GOOGLE_IFRAME_ORIGIN = 'https://arpalapp.framer.website'; // origen del iframe
+
+    function tryPostTokenToIframe(id_token) {
+      const iframe = document.getElementById('framerContent');
+      if (iframe && iframe.contentWindow) {
+        try {
+          iframe.contentWindow.postMessage({
+            type: 'googleLogin',
+            token: id_token
+          }, GOOGLE_IFRAME_ORIGIN);
+          console.log('Google token enviado al iframe');
+          return true;
+        } catch (err) {
+          console.warn('Error enviando token al iframe:', err);
+          return false;
+        }
+      }
+      console.warn('Iframe no listo para recibir token');
+      return false;
+    }
+
+    function handleCredentialResponse(response) {
+      const id_token = response.credential;
+      console.log('Google One Tap credential received');
+
+      // Intentar enviar directamente al iframe; si no está listo, guardarlo para enviar cuando el iframe cargue.
+      if (!tryPostTokenToIframe(id_token)) {
+        localStorage.setItem('pendingGoogleToken', id_token);
+        console.log('Token guardado en localStorage como pendingGoogleToken');
+      }
+    }
+
+    // Inicializar GSI una vez el script esté cargado y el DOM listo
+    function initGoogleOneTapOnceReady() {
+      const init = () => {
+        if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+          console.warn('GSI aún no disponible, reintentando...');
+          return false;
+        }
+
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleCredentialResponse,
+          ux_mode: 'popup' // popup evita full redirect; puedes cambiar si prefieres redirect
+        });
+
+        // Mostrar prompt (la "ventanita" One Tap)
+        google.accounts.id.prompt();
+        console.log('Google One Tap inicializado y prompt disparado');
+        return true;
+      };
+
+      if (!init()) {
+        // reintentar hasta que esté listo
+        const check = setInterval(() => {
+          if (init()) clearInterval(check);
+        }, 300);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', initGoogleOneTapOnceReady);
+  </script>
 </head>
 <body>
   <iframe 
@@ -355,7 +423,22 @@
 
       iframe.onload = function() { 
         console.log('Iframe loaded');
-        restoreSession(); 
+        restoreSession();
+
+        // Si Google dejó un token pendiente, enviarlo ahora
+        try {
+          const pending = localStorage.getItem('pendingGoogleToken');
+          if (pending) {
+            console.log('Enviando pendingGoogleToken al iframe');
+            sendMessageToIframe({
+              type: 'googleLogin',
+              token: pending
+            });
+            localStorage.removeItem('pendingGoogleToken');
+          }
+        } catch (err) {
+          console.error('Error enviando pending token:', err);
+        }
       };
 
       if ('serviceWorker' in navigator) {
