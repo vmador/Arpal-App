@@ -162,25 +162,52 @@
       }
       
       try {
-        // Método 1: OneSignal v16 API
-        if (window.OneSignal.Notifications && window.OneSignal.Notifications.requestPermission) {
-          console.log('🎯 V16: Usando OneSignal.Notifications.requestPermission()');
+        // Método 1: Primero intentar con API nativa (más confiable)
+        if ('Notification' in window) {
+          console.log('🎯 V16: Usando API nativa del navegador directamente');
           
-          // Verificar estado actual
-          const currentPermission = await window.OneSignal.Notifications.permission;
-          if (currentPermission === 'granted') {
-            console.log('✅ V16: Usuario ya está suscrito');
+          if (Notification.permission === 'granted') {
+            console.log('✅ V16: Usuario ya tiene permisos nativos');
+            await configureArpalTags(userId);
             return true;
           }
           
-          // Solicitar permiso
-          console.log('🎯 V16: Solicitando permiso...');
-          const result = await window.OneSignal.Notifications.requestPermission();
-          console.log('📋 V16: Resultado solicitud:', result);
+          if (Notification.permission === 'default') {
+            console.log('🎯 V16: Solicitando permiso nativo...');
+            const permission = await Notification.requestPermission();
+            console.log('📋 V16: Resultado nativo:', permission);
+            
+            if (permission === 'granted') {
+              console.log('🎉 V16: ¡Permiso nativo concedido!');
+              
+              // Registrar con OneSignal después del permiso nativo
+              if (window.OneSignal && window.OneSignal.User) {
+                try {
+                  await configureArpalTags(userId);
+                } catch (e) {
+                  console.log('⚠️ V16: Error configurando OneSignal (no crítico):', e);
+                }
+              }
+              
+              return true;
+            }
+          }
+        }
+        
+        // Método 2: Fallback con OneSignal si está disponible
+        if (window.OneSignal.Notifications && window.OneSignal.Notifications.requestPermission) {
+          console.log('🎯 V16: Fallback - Usando OneSignal.Notifications.requestPermission()');
           
-          if (result) {
-            await configureArpalTags(userId);
-            return true;
+          try {
+            const result = await window.OneSignal.Notifications.requestPermission();
+            console.log('📋 V16: Resultado OneSignal:', result);
+            
+            if (result) {
+              await configureArpalTags(userId);
+              return true;
+            }
+          } catch (error) {
+            console.log('⚠️ V16: Error con OneSignal requestPermission:', error);
           }
         }
         
