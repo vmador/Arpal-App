@@ -76,23 +76,23 @@
 
   <script>
     // ============= CONFIGURACIÓN ONESIGNAL =============
-    console.log('🚀 Iniciando configuración OneSignal...');
+    console.log('🚀 Arpal PWA - Iniciando configuración OneSignal...');
     
     let oneSignalInitialized = false;
     
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(function(OneSignal) {
-      console.log('📡 OneSignal cargado, inicializando...');
+      console.log('📡 OneSignal SDK cargado, inicializando...');
       
       OneSignal.init({
         appId: "49999010-fa62-443a-914d-7326000e6fb4",
         safari_web_id: "web.onesignal.auto.1172fa5f-6e39-45ba-9a29-ceb4d8311220",
         notifyButton: {
-          enable: false // Desactivado - usamos botón personalizado
+          enable: false // Desactivado - usamos botón personalizado de Framer
         },
         allowLocalhostAsSecureOrigin: true
       }).then(function() {
-        console.log('✅ OneSignal inicializado correctamente');
+        console.log('✅ OneSignal inicializado exitosamente');
         oneSignalInitialized = true;
         
         // Evento personalizado para notificar que está listo
@@ -105,17 +105,17 @@
 
     // ============= FUNCIONES DE PUSH NOTIFICATIONS =============
     
-    async function checkPushStatus() {
+    async function checkPushNotificationStatus() {
       console.log('🔍 Verificando estado de push notifications...');
       
       if (!oneSignalInitialized || !window.OneSignal) {
-        console.log('⚠️ OneSignal no está listo');
+        console.log('⚠️ OneSignal no está listo aún');
         return false;
       }
       
       try {
         const isEnabled = await window.OneSignal.isPushNotificationsEnabled();
-        console.log('📊 Push notifications habilitadas:', isEnabled);
+        console.log('📊 Push notifications estado:', isEnabled);
         return isEnabled;
       } catch (error) {
         console.error('❌ Error verificando push status:', error);
@@ -123,66 +123,91 @@
       }
     }
     
-    async function subscribeToPush(userId = null) {
-      console.log('📱 INICIANDO SUSCRIPCIÓN A PUSH NOTIFICATIONS...');
+    async function subscribeToPushNotifications(userId = null) {
+      console.log('📱 🚀 INICIANDO PROCESO DE SUSCRIPCIÓN A PUSH NOTIFICATIONS...');
       
       if (!oneSignalInitialized || !window.OneSignal) {
-        console.error('❌ OneSignal no está disponible');
+        console.error('❌ OneSignal no está disponible para suscripción');
         return false;
       }
       
       try {
-        // Verificar si ya está suscrito
+        // Paso 1: Verificar si ya está suscrito
         const alreadySubscribed = await window.OneSignal.isPushNotificationsEnabled();
         if (alreadySubscribed) {
-          console.log('✅ Ya está suscrito a push notifications');
+          console.log('✅ Usuario ya está suscrito a push notifications');
           return true;
         }
         
-        // Mostrar el prompt nativo del navegador
-        console.log('🎯 Mostrando prompt de suscripción...');
+        console.log('🎯 Usuario no suscrito, mostrando prompt del navegador...');
+        
+        // Paso 2: Mostrar el prompt nativo del navegador
         await window.OneSignal.showNativePrompt();
         
-        // Esperar un momento para que el usuario responda
+        // Paso 3: Esperar un momento para que el usuario responda
+        console.log('⏳ Esperando respuesta del usuario...');
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Verificar el resultado
+        // Paso 4: Verificar el resultado de la suscripción
         const subscriptionResult = await window.OneSignal.isPushNotificationsEnabled();
-        console.log('📋 Resultado de suscripción:', subscriptionResult);
+        console.log('📋 Resultado de la suscripción:', subscriptionResult);
         
         if (subscriptionResult) {
-          console.log('🎉 ¡SUSCRIPCIÓN EXITOSA!');
+          console.log('🎉 ¡SUSCRIPCIÓN A PUSH NOTIFICATIONS EXITOSA!');
           
-          // Configurar tags de Arpal
+          // Paso 5: Configurar tags específicos de Arpal
           try {
-            await window.OneSignal.sendTags({
+            const tags = {
               'app': 'arpal_sounds',
               'subscription_date': new Date().toISOString(),
-              'language': 'es'
-            });
-            console.log('🏷️ Tags configurados');
+              'language': 'es',
+              'platform': 'web'
+            };
+            
+            await window.OneSignal.sendTags(tags);
+            console.log('🏷️ Tags de Arpal configurados:', tags);
           } catch (tagError) {
-            console.log('⚠️ Error configurando tags:', tagError);
+            console.log('⚠️ Error configurando tags (no crítico):', tagError);
           }
           
-          // Configurar userId si se proporciona
+          // Paso 6: Configurar userId externo si se proporciona
           if (userId) {
             try {
-              await window.OneSignal.setExternalUserId(userId);
+              await window.OneSignal.setExternalUserId(userId.toString());
               console.log('👤 External User ID configurado:', userId);
             } catch (userIdError) {
-              console.log('⚠️ Error configurando userId:', userIdError);
+              console.log('⚠️ Error configurando External User ID (no crítico):', userIdError);
             }
           }
           
+          console.log('🎊 PROCESO COMPLETO - Usuario suscrito exitosamente a Arpal notifications!');
           return true;
+          
         } else {
-          console.log('❌ Usuario rechazó las notificaciones');
+          console.log('❌ Usuario rechazó o canceló las notificaciones push');
           return false;
         }
         
       } catch (error) {
-        console.error('❌ Error durante suscripción:', error);
+        console.error('❌ Error durante el proceso de suscripción:', error);
+        return false;
+      }
+    }
+    
+    async function setUserIdForNotifications(userId) {
+      console.log('👤 Configurando User ID para notifications:', userId);
+      
+      if (!oneSignalInitialized || !window.OneSignal || !userId) {
+        console.log('⚠️ OneSignal no listo o userId inválido');
+        return false;
+      }
+      
+      try {
+        await window.OneSignal.setExternalUserId(userId.toString());
+        console.log('✅ External User ID configurado exitosamente');
+        return true;
+      } catch (error) {
+        console.error('❌ Error configurando External User ID:', error);
         return false;
       }
     }
@@ -193,24 +218,32 @@
     const iframe = document.getElementById('framerContent');
     const targetOrigin = 'https://arpalapp.framer.website';
 
-    function sendMessageToIframe(message) {
+    function sendMessageToFramer(message) {
       if (iframe && iframe.contentWindow) {
         console.log('📤 Enviando mensaje a Framer:', message.type);
         iframe.contentWindow.postMessage(message, targetOrigin);
+      } else {
+        console.error('❌ No se pudo enviar mensaje al iframe de Framer');
       }
     }
 
+    // Escuchar mensajes de Framer
     window.addEventListener('message', function(event) {
-      if (event.origin !== targetOrigin) return;
+      // Verificar origen por seguridad
+      if (event.origin !== targetOrigin) {
+        console.log('⚠️ Mensaje de origen no autorizado:', event.origin);
+        return;
+      }
       
       try {
         if (event.data && event.data.type) {
-          console.log('📥 Mensaje de Framer:', event.data.type);
+          console.log('📥 Mensaje recibido de Framer:', event.data.type);
           
           switch(event.data.type) {
             
-            // ===== SESSION MANAGEMENT =====
+            // ===== GESTIÓN DE SESIÓN =====
             case 'setSessionData':
+              console.log('💾 Guardando datos de sesión');
               if (event.data.sessionData) {
                 localStorage.setItem(SESSION_KEY, JSON.stringify(event.data.sessionData));
                 sessionStorage.setItem(SESSION_KEY, JSON.stringify(event.data.sessionData));
@@ -221,111 +254,128 @@
               break;
               
             case 'getSessionData':
+              console.log('📖 Recuperando datos de sesión');
               const sessionData = localStorage.getItem(SESSION_KEY);
-              sendMessageToIframe({
+              sendMessageToFramer({
                 type: 'sessionDataResponse',
                 sessionData: sessionData ? JSON.parse(sessionData) : null
               });
               break;
               
             case 'openPopup':
+              console.log('🪟 Abriendo popup:', event.data.url);
               if (event.data.url) {
                 window.open(event.data.url, "_blank", "width=600,height=700");
               }
               break;
 
-            // ===== PUSH NOTIFICATIONS =====
+            // ===== PUSH NOTIFICATIONS - VERIFICAR ESTADO =====
             case 'oneSignalIsPushEnabled':
-              console.log('🔍 SOLICITUD: Verificar estado push');
+              console.log('🔍 SOLICITUD FRAMER: Verificar estado de push notifications');
               
-              checkPushStatus().then(result => {
-                sendMessageToIframe({
+              checkPushNotificationStatus().then(result => {
+                console.log('📊 Enviando estado a Framer:', result);
+                sendMessageToFramer({
                   type: 'oneSignalIsPushEnabledResponse',
                   requestId: event.data.requestId,
                   result: result
                 });
+              }).catch(error => {
+                console.error('❌ Error verificando estado:', error);
+                sendMessageToFramer({
+                  type: 'oneSignalIsPushEnabledResponse',
+                  requestId: event.data.requestId,
+                  result: false
+                });
               });
               break;
 
+            // ===== PUSH NOTIFICATIONS - SUSCRIBIR =====
             case 'oneSignalShowPrompt':
-              console.log('🎯 SOLICITUD: Suscribir a push notifications');
+              console.log('🎯 SOLICITUD FRAMER: Suscribir a push notifications');
+              console.log('👤 User ID recibido:', event.data.userId);
               
-              subscribeToPush(event.data.userId).then(result => {
-                console.log('📋 Enviando resultado a Framer:', result);
-                sendMessageToIframe({
+              subscribeToPushNotifications(event.data.userId).then(result => {
+                console.log('📋 Enviando resultado de suscripción a Framer:', result);
+                sendMessageToFramer({
                   type: 'oneSignalShowPromptResponse',
                   requestId: event.data.requestId,
                   result: result
                 });
+              }).catch(error => {
+                console.error('❌ Error en proceso de suscripción:', error);
+                sendMessageToFramer({
+                  type: 'oneSignalShowPromptResponse',
+                  requestId: event.data.requestId,
+                  result: false
+                });
               });
               break;
 
+            // ===== PUSH NOTIFICATIONS - CONFIGURAR USER ID =====
             case 'oneSignalSetUserId':
-              console.log('👤 SOLICITUD: Configurar userId');
+              console.log('👤 SOLICITUD FRAMER: Configurar User ID');
               
-              if (oneSignalInitialized && window.OneSignal && event.data.userId) {
-                window.OneSignal.setExternalUserId(event.data.userId)
-                  .then(() => {
-                    sendMessageToIframe({
-                      type: 'oneSignalSetUserIdResponse',
-                      requestId: event.data.requestId,
-                      result: true
-                    });
-                  })
-                  .catch(error => {
-                    console.error('❌ Error configurando userId:', error);
-                    sendMessageToIframe({
-                      type: 'oneSignalSetUserIdResponse',
-                      requestId: event.data.requestId,
-                      result: false
-                    });
-                  });
-              } else {
-                sendMessageToIframe({
+              setUserIdForNotifications(event.data.userId).then(result => {
+                sendMessageToFramer({
+                  type: 'oneSignalSetUserIdResponse',
+                  requestId: event.data.requestId,
+                  result: result
+                });
+              }).catch(error => {
+                console.error('❌ Error configurando User ID:', error);
+                sendMessageToFramer({
                   type: 'oneSignalSetUserIdResponse',
                   requestId: event.data.requestId,
                   result: false
                 });
-              }
+              });
               break;
 
             default:
-              console.log('⚠️ Mensaje no reconocido:', event.data.type);
+              console.log('⚠️ Tipo de mensaje no reconocido de Framer:', event.data.type);
               break;
           }
         }
       } catch (error) {
-        console.error('❌ Error procesando mensaje:', error);
+        console.error('❌ Error procesando mensaje de Framer:', error);
       }
     });
 
-    // ============= SESSION RESTORE =============
+    // ============= GESTIÓN DE SESIONES =============
     
-    function restoreSession() {
+    function restoreUserSession() {
+      console.log('🔄 Restaurando sesión de usuario...');
       try {
         const sessionData = localStorage.getItem(SESSION_KEY);
         if (sessionData) {
           setTimeout(() => {
-            sendMessageToIframe({
+            sendMessageToFramer({
               type: 'restoreSession',
               sessionData: JSON.parse(sessionData)
             });
+            console.log('✅ Sesión restaurada');
           }, 2000);
+        } else {
+          console.log('ℹ️ No hay sesión previa para restaurar');
         }
       } catch (error) {
         console.error('❌ Error restaurando sesión:', error);
       }
     }
 
+    // Restaurar sesión cuando la página se vuelve visible
     document.addEventListener('visibilitychange', function() {
       if (!document.hidden) {
-        restoreSession();
+        console.log('👀 Página visible, restaurando sesión...');
+        restoreUserSession();
       }
     });
 
+    // Restaurar sesión cuando el iframe carga
     iframe.onload = function() { 
-      console.log('✅ Iframe cargado');
-      restoreSession(); 
+      console.log('✅ Iframe de Framer cargado correctamente');
+      restoreUserSession(); 
     };
 
     // ============= SERVICE WORKER =============
@@ -334,59 +384,82 @@
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('/service-worker.js')
           .then(function(registration) {
-            console.log('✅ ServiceWorker registrado:', registration.scope);
+            console.log('✅ Service Worker registrado exitosamente:', registration.scope);
           })
           .catch(function(err) {
-            console.log('⚠️ ServiceWorker error:', err);
+            console.log('⚠️ Service Worker no pudo registrarse:', err);
           });
       });
     }
 
-    // ============= VIEWPORT ADJUSTMENT =============
+    // ============= VIEWPORT DINÁMICO =============
     
     function updateViewportHeight() {
-      document.documentElement.style.setProperty('--dvh', window.innerHeight + 'px');
+      const height = window.innerHeight + 'px';
+      document.documentElement.style.setProperty('--dvh', height);
+      console.log('📱 Viewport height actualizado:', height);
     }
 
-    if ('dvh' === 'dvh') {
-      updateViewportHeight();
-      window.addEventListener('resize', updateViewportHeight);
-      window.addEventListener('orientationchange', updateViewportHeight);
-    }
+    // Aplicar ajuste de viewport
+    updateViewportHeight();
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', function() {
+      setTimeout(updateViewportHeight, 100); // Pequeño delay para orientationchange
+    });
 
-    // ============= DEBUGGING INFO =============
+    // ============= FUNCIONES DE DEBUGGING =============
     
-    console.log('🚀 Arpal PWA inicializado');
-    
-    // Status checker cada 5 segundos durante 30 segundos
-    let checkCount = 0;
-    const statusInterval = setInterval(() => {
-      checkCount++;
-      console.log(`📊 [${checkCount}] Estado actual:`, {
-        OneSignal: !!window.OneSignal,
-        initialized: oneSignalInitialized,
-        functions: window.OneSignal ? {
-          isPushEnabled: typeof window.OneSignal.isPushNotificationsEnabled,
-          showPrompt: typeof window.OneSignal.showNativePrompt,
-          setUserId: typeof window.OneSignal.setExternalUserId
-        } : 'No disponible'
-      });
-      
-      if (checkCount >= 6) {
-        clearInterval(statusInterval);
-        console.log('🏁 Monitoring completo');
-      }
-    }, 5000);
-
-    // Test manual - para debugging en consola
-    window.testPushSubscription = function() {
-      console.log('🧪 PRUEBA MANUAL: Iniciando suscripción...');
-      subscribeToPush('test_user').then(result => {
-        console.log('🧪 RESULTADO:', result ? '✅ ÉXITO' : '❌ FALLO');
+    // Función para probar push notifications manualmente desde la consola
+    window.testArpalPushNotifications = function() {
+      console.log('🧪 PRUEBA MANUAL: Iniciando test de push notifications...');
+      subscribeToPushNotifications('test_user_' + Date.now()).then(result => {
+        console.log('🧪 RESULTADO TEST:', result ? '✅ ÉXITO' : '❌ FALLO');
       });
     };
     
-    console.log('💡 TIP: Ejecuta window.testPushSubscription() en la consola para probar manualmente');
+    // Función para verificar estado completo
+    window.checkArpalStatus = function() {
+      console.log('🔍 ESTADO COMPLETO DE ARPAL PWA:', {
+        OneSignal: !!window.OneSignal,
+        initialized: oneSignalInitialized,
+        iframe: !!iframe,
+        functions: window.OneSignal ? {
+          isPushEnabled: typeof window.OneSignal.isPushNotificationsEnabled,
+          showPrompt: typeof window.OneSignal.showNativePrompt,
+          setUserId: typeof window.OneSignal.setExternalUserId,
+          sendTags: typeof window.OneSignal.sendTags
+        } : 'OneSignal no disponible'
+      });
+    };
+
+    // ============= INICIALIZACIÓN FINAL =============
+    
+    console.log('🚀 Arpal PWA inicializado correctamente');
+    console.log('💡 Comandos de debugging disponibles:');
+    console.log('   - window.testArpalPushNotifications() // Probar suscripción manualmente');
+    console.log('   - window.checkArpalStatus() // Ver estado completo');
+    
+    // Monitoreo inicial del estado (primeros 30 segundos)
+    let statusCheckCount = 0;
+    const statusMonitor = setInterval(() => {
+      statusCheckCount++;
+      console.log(`📊 [Monitor ${statusCheckCount}/6] OneSignal:`, {
+        loaded: !!window.OneSignal,
+        initialized: oneSignalInitialized,
+        ready: oneSignalInitialized && !!window.OneSignal
+      });
+      
+      if (statusCheckCount >= 6) {
+        clearInterval(statusMonitor);
+        console.log('🏁 Monitoreo inicial completado');
+        
+        if (oneSignalInitialized) {
+          console.log('🎉 ¡Arpal PWA completamente listo para push notifications!');
+        } else {
+          console.log('⚠️ OneSignal aún no está listo - revisa la configuración');
+        }
+      }
+    }, 5000);
     
   </script>
 </body>
