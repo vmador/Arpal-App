@@ -76,13 +76,13 @@
 
   <script>
     // ============= CONFIGURACIÓN ONESIGNAL =============
-    console.log('🚀 Arpal PWA - Iniciando configuración OneSignal...');
+    console.log('🚀 ARPAL V2 - OneSignal con API v16 corregida');
     
     let oneSignalInitialized = false;
     
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(function(OneSignal) {
-      console.log('📡 OneSignal SDK cargado, inicializando...');
+      console.log('📡 OneSignal SDK v16 cargado, inicializando...');
       
       OneSignal.init({
         appId: "49999010-fa62-443a-914d-7326000e6fb4",
@@ -92,122 +92,168 @@
         },
         allowLocalhostAsSecureOrigin: true
       }).then(function() {
-        console.log('✅ OneSignal inicializado exitosamente');
+        console.log('✅ OneSignal v16 inicializado exitosamente');
         oneSignalInitialized = true;
+        
+        // Log de funciones disponibles para debugging
+        console.log('🔍 Funciones OneSignal v16 disponibles:', {
+          Notifications: !!window.OneSignal.Notifications,
+          User: !!window.OneSignal.User,
+          login: typeof window.OneSignal.login
+        });
         
         // Evento personalizado para notificar que está listo
         window.dispatchEvent(new CustomEvent('oneSignalReady'));
         
       }).catch(function(error) {
-        console.error('❌ Error inicializando OneSignal:', error);
+        console.error('❌ Error inicializando OneSignal v16:', error);
       });
     });
 
-    // ============= FUNCIONES DE PUSH NOTIFICATIONS =============
+    // ============= FUNCIONES PUSH NOTIFICATIONS (API v16) =============
     
     async function checkPushNotificationStatus() {
-      console.log('🔍 Verificando estado de push notifications...');
+      console.log('🔍 V16: Verificando estado de push notifications...');
       
       if (!oneSignalInitialized || !window.OneSignal) {
-        console.log('⚠️ OneSignal no está listo aún');
+        console.log('⚠️ OneSignal v16 no está listo aún');
         return false;
       }
       
       try {
-        const isEnabled = await window.OneSignal.isPushNotificationsEnabled();
-        console.log('📊 Push notifications estado:', isEnabled);
-        return isEnabled;
+        // Método 1: Intentar con la nueva API v16
+        if (window.OneSignal.Notifications && window.OneSignal.Notifications.permission) {
+          const permission = await window.OneSignal.Notifications.permission;
+          const isEnabled = permission === 'granted';
+          console.log('📊 V16 Push estado:', isEnabled, 'permission:', permission);
+          return isEnabled;
+        }
+        
+        // Método 2: Fallback - intentar método directo
+        if (typeof window.OneSignal.getPermission === 'function') {
+          const permission = await window.OneSignal.getPermission();
+          const isEnabled = permission === 'granted';
+          console.log('📊 V16 Push estado (fallback):', isEnabled, 'permission:', permission);
+          return isEnabled;
+        }
+        
+        // Método 3: Último fallback - verificar Notification API nativa
+        if ('Notification' in window) {
+          const isEnabled = Notification.permission === 'granted';
+          console.log('📊 Push estado (nativo):', isEnabled, 'permission:', Notification.permission);
+          return isEnabled;
+        }
+        
+        console.log('⚠️ No se pudo verificar el estado de push notifications');
+        return false;
+        
       } catch (error) {
-        console.error('❌ Error verificando push status:', error);
+        console.error('❌ Error verificando push status v16:', error);
         return false;
       }
     }
     
     async function subscribeToPushNotifications(userId = null) {
-      console.log('📱 🚀 INICIANDO PROCESO DE SUSCRIPCIÓN A PUSH NOTIFICATIONS...');
+      console.log('📱 🚀 V16: INICIANDO SUSCRIPCIÓN A PUSH NOTIFICATIONS...');
       
       if (!oneSignalInitialized || !window.OneSignal) {
-        console.error('❌ OneSignal no está disponible para suscripción');
+        console.error('❌ OneSignal v16 no está disponible para suscripción');
         return false;
       }
       
       try {
-        // Paso 1: Verificar si ya está suscrito
-        const alreadySubscribed = await window.OneSignal.isPushNotificationsEnabled();
-        if (alreadySubscribed) {
-          console.log('✅ Usuario ya está suscrito a push notifications');
-          return true;
-        }
-        
-        console.log('🎯 Usuario no suscrito, mostrando prompt del navegador...');
-        
-        // Paso 2: Mostrar el prompt nativo del navegador
-        await window.OneSignal.showNativePrompt();
-        
-        // Paso 3: Esperar un momento para que el usuario responda
-        console.log('⏳ Esperando respuesta del usuario...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Paso 4: Verificar el resultado de la suscripción
-        const subscriptionResult = await window.OneSignal.isPushNotificationsEnabled();
-        console.log('📋 Resultado de la suscripción:', subscriptionResult);
-        
-        if (subscriptionResult) {
-          console.log('🎉 ¡SUSCRIPCIÓN A PUSH NOTIFICATIONS EXITOSA!');
+        // Método 1: OneSignal v16 API
+        if (window.OneSignal.Notifications && window.OneSignal.Notifications.requestPermission) {
+          console.log('🎯 V16: Usando OneSignal.Notifications.requestPermission()');
           
-          // Paso 5: Configurar tags específicos de Arpal
-          try {
-            const tags = {
-              'app': 'arpal_sounds',
-              'subscription_date': new Date().toISOString(),
-              'language': 'es',
-              'platform': 'web'
-            };
-            
-            await window.OneSignal.sendTags(tags);
-            console.log('🏷️ Tags de Arpal configurados:', tags);
-          } catch (tagError) {
-            console.log('⚠️ Error configurando tags (no crítico):', tagError);
+          // Verificar estado actual
+          const currentPermission = await window.OneSignal.Notifications.permission;
+          if (currentPermission === 'granted') {
+            console.log('✅ V16: Usuario ya está suscrito');
+            return true;
           }
           
-          // Paso 6: Configurar userId externo si se proporciona
-          if (userId) {
-            try {
-              await window.OneSignal.setExternalUserId(userId.toString());
-              console.log('👤 External User ID configurado:', userId);
-            } catch (userIdError) {
-              console.log('⚠️ Error configurando External User ID (no crítico):', userIdError);
-            }
+          // Solicitar permiso
+          console.log('🎯 V16: Solicitando permiso...');
+          const result = await window.OneSignal.Notifications.requestPermission();
+          console.log('📋 V16: Resultado solicitud:', result);
+          
+          if (result) {
+            await configureArpalTags(userId);
+            return true;
           }
-          
-          console.log('🎊 PROCESO COMPLETO - Usuario suscrito exitosamente a Arpal notifications!');
-          return true;
-          
-        } else {
-          console.log('❌ Usuario rechazó o canceló las notificaciones push');
-          return false;
         }
+        
+        // Método 2: Fallback con API nativa del navegador
+        if ('Notification' in window && Notification.permission === 'default') {
+          console.log('🎯 V16: Usando Notification API nativa como fallback');
+          const permission = await Notification.requestPermission();
+          console.log('📋 V16: Resultado nativo:', permission);
+          
+          if (permission === 'granted') {
+            await configureArpalTags(userId);
+            return true;
+          }
+        }
+        
+        console.log('❌ V16: Usuario rechazó las notificaciones');
+        return false;
         
       } catch (error) {
-        console.error('❌ Error durante el proceso de suscripción:', error);
+        console.error('❌ V16: Error durante suscripción:', error);
         return false;
       }
     }
     
+    async function configureArpalTags(userId) {
+      console.log('🏷️ V16: Configurando tags de Arpal...');
+      
+      try {
+        // Configurar tags
+        if (window.OneSignal.User && window.OneSignal.User.addTags) {
+          const tags = {
+            'app': 'arpal_sounds',
+            'subscription_date': new Date().toISOString(),
+            'language': 'es',
+            'platform': 'web'
+          };
+          
+          await window.OneSignal.User.addTags(tags);
+          console.log('✅ V16: Tags configurados:', tags);
+        }
+        
+        // Configurar userId
+        if (userId && window.OneSignal.login) {
+          await window.OneSignal.login(userId.toString());
+          console.log('👤 V16: Usuario logueado con ID:', userId);
+        }
+        
+        console.log('🎊 V16: CONFIGURACIÓN COMPLETA!');
+        
+      } catch (error) {
+        console.log('⚠️ V16: Error configurando tags/userId (no crítico):', error);
+      }
+    }
+    
     async function setUserIdForNotifications(userId) {
-      console.log('👤 Configurando User ID para notifications:', userId);
+      console.log('👤 V16: Configurando User ID:', userId);
       
       if (!oneSignalInitialized || !window.OneSignal || !userId) {
-        console.log('⚠️ OneSignal no listo o userId inválido');
+        console.log('⚠️ V16: OneSignal no listo o userId inválido');
         return false;
       }
       
       try {
-        await window.OneSignal.setExternalUserId(userId.toString());
-        console.log('✅ External User ID configurado exitosamente');
-        return true;
+        if (window.OneSignal.login) {
+          await window.OneSignal.login(userId.toString());
+          console.log('✅ V16: Usuario logueado exitosamente');
+          return true;
+        } else {
+          console.log('⚠️ V16: OneSignal.login no disponible');
+          return false;
+        }
       } catch (error) {
-        console.error('❌ Error configurando External User ID:', error);
+        console.error('❌ V16: Error configurando User ID:', error);
         return false;
       }
     }
@@ -231,13 +277,12 @@
     window.addEventListener('message', function(event) {
       // Verificar origen por seguridad
       if (event.origin !== targetOrigin) {
-        console.log('⚠️ Mensaje de origen no autorizado:', event.origin);
         return;
       }
       
       try {
         if (event.data && event.data.type) {
-          console.log('📥 Mensaje recibido de Framer:', event.data.type);
+          console.log('📥 V16: Mensaje de Framer:', event.data.type);
           
           switch(event.data.type) {
             
@@ -269,19 +314,19 @@
               }
               break;
 
-            // ===== PUSH NOTIFICATIONS - VERIFICAR ESTADO =====
+            // ===== PUSH NOTIFICATIONS V16 =====
             case 'oneSignalIsPushEnabled':
-              console.log('🔍 SOLICITUD FRAMER: Verificar estado de push notifications');
+              console.log('🔍 V16: SOLICITUD - Verificar estado push');
               
               checkPushNotificationStatus().then(result => {
-                console.log('📊 Enviando estado a Framer:', result);
+                console.log('📊 V16: Enviando estado a Framer:', result);
                 sendMessageToFramer({
                   type: 'oneSignalIsPushEnabledResponse',
                   requestId: event.data.requestId,
                   result: result
                 });
               }).catch(error => {
-                console.error('❌ Error verificando estado:', error);
+                console.error('❌ V16: Error verificando estado:', error);
                 sendMessageToFramer({
                   type: 'oneSignalIsPushEnabledResponse',
                   requestId: event.data.requestId,
@@ -290,20 +335,19 @@
               });
               break;
 
-            // ===== PUSH NOTIFICATIONS - SUSCRIBIR =====
             case 'oneSignalShowPrompt':
-              console.log('🎯 SOLICITUD FRAMER: Suscribir a push notifications');
-              console.log('👤 User ID recibido:', event.data.userId);
+              console.log('🎯 V16: SOLICITUD - Suscribir a push notifications');
+              console.log('👤 V16: User ID recibido:', event.data.userId);
               
               subscribeToPushNotifications(event.data.userId).then(result => {
-                console.log('📋 Enviando resultado de suscripción a Framer:', result);
+                console.log('📋 V16: Enviando resultado a Framer:', result);
                 sendMessageToFramer({
                   type: 'oneSignalShowPromptResponse',
                   requestId: event.data.requestId,
                   result: result
                 });
               }).catch(error => {
-                console.error('❌ Error en proceso de suscripción:', error);
+                console.error('❌ V16: Error en suscripción:', error);
                 sendMessageToFramer({
                   type: 'oneSignalShowPromptResponse',
                   requestId: event.data.requestId,
@@ -312,9 +356,8 @@
               });
               break;
 
-            // ===== PUSH NOTIFICATIONS - CONFIGURAR USER ID =====
             case 'oneSignalSetUserId':
-              console.log('👤 SOLICITUD FRAMER: Configurar User ID');
+              console.log('👤 V16: SOLICITUD - Configurar User ID');
               
               setUserIdForNotifications(event.data.userId).then(result => {
                 sendMessageToFramer({
@@ -323,7 +366,7 @@
                   result: result
                 });
               }).catch(error => {
-                console.error('❌ Error configurando User ID:', error);
+                console.error('❌ V16: Error configurando User ID:', error);
                 sendMessageToFramer({
                   type: 'oneSignalSetUserIdResponse',
                   requestId: event.data.requestId,
@@ -333,12 +376,12 @@
               break;
 
             default:
-              console.log('⚠️ Tipo de mensaje no reconocido de Framer:', event.data.type);
+              // Ignorar mensajes no reconocidos silenciosamente
               break;
           }
         }
       } catch (error) {
-        console.error('❌ Error procesando mensaje de Framer:', error);
+        console.error('❌ V16: Error procesando mensaje de Framer:', error);
       }
     });
 
@@ -397,7 +440,6 @@
     function updateViewportHeight() {
       const height = window.innerHeight + 'px';
       document.documentElement.style.setProperty('--dvh', height);
-      console.log('📱 Viewport height actualizado:', height);
     }
 
     // Aplicar ajuste de viewport
@@ -411,34 +453,42 @@
     
     // Función para probar push notifications manualmente desde la consola
     window.testArpalPushNotifications = function() {
-      console.log('🧪 PRUEBA MANUAL: Iniciando test de push notifications...');
+      console.log('🧪 V16: PRUEBA MANUAL - Iniciando test de push notifications...');
       subscribeToPushNotifications('test_user_' + Date.now()).then(result => {
-        console.log('🧪 RESULTADO TEST:', result ? '✅ ÉXITO' : '❌ FALLO');
+        console.log('🧪 V16: RESULTADO TEST:', result ? '✅ ÉXITO' : '❌ FALLO');
       });
     };
     
     // Función para verificar estado completo
     window.checkArpalStatus = function() {
-      console.log('🔍 ESTADO COMPLETO DE ARPAL PWA:', {
+      console.log('🔍 V16: ESTADO COMPLETO DE ARPAL PWA:', {
         OneSignal: !!window.OneSignal,
         initialized: oneSignalInitialized,
         iframe: !!iframe,
         notifications: window.OneSignal ? {
           available: !!window.OneSignal.Notifications,
-          permission: window.OneSignal.Notifications ? window.OneSignal.Notifications.permission : 'no disponible',
+          permission: window.OneSignal.Notifications ? 'Revisar en consola' : 'no disponible',
           requestPermission: typeof (window.OneSignal.Notifications && window.OneSignal.Notifications.requestPermission),
         } : 'OneSignal no disponible',
         user: window.OneSignal ? {
           available: !!window.OneSignal.User,
           addTags: typeof (window.OneSignal.User && window.OneSignal.User.addTags),
           login: typeof window.OneSignal.login
-        } : 'OneSignal no disponible'
+        } : 'OneSignal no disponible',
+        nativeNotifications: 'Notification' in window ? Notification.permission : 'no disponible'
       });
+      
+      // Verificar permisos actuales
+      if (window.OneSignal && window.OneSignal.Notifications) {
+        window.OneSignal.Notifications.permission.then(perm => {
+          console.log('📋 V16: Permission actual:', perm);
+        }).catch(e => console.log('⚠️ V16: Error obteniendo permission:', e));
+      }
     };
 
     // ============= INICIALIZACIÓN FINAL =============
     
-    console.log('🚀 Arpal PWA inicializado correctamente');
+    console.log('🚀 ARPAL V2 PWA inicializado correctamente');
     console.log('💡 Comandos de debugging disponibles:');
     console.log('   - window.testArpalPushNotifications() // Probar suscripción manualmente');
     console.log('   - window.checkArpalStatus() // Ver estado completo');
@@ -447,7 +497,7 @@
     let statusCheckCount = 0;
     const statusMonitor = setInterval(() => {
       statusCheckCount++;
-      console.log(`📊 [Monitor ${statusCheckCount}/6] OneSignal:`, {
+      console.log(`📊 V16: [Monitor ${statusCheckCount}/6] OneSignal:`, {
         loaded: !!window.OneSignal,
         initialized: oneSignalInitialized,
         ready: oneSignalInitialized && !!window.OneSignal
@@ -455,12 +505,12 @@
       
       if (statusCheckCount >= 6) {
         clearInterval(statusMonitor);
-        console.log('🏁 Monitoreo inicial completado');
+        console.log('🏁 V16: Monitoreo inicial completado');
         
         if (oneSignalInitialized) {
-          console.log('🎉 ¡Arpal PWA completamente listo para push notifications!');
+          console.log('🎉 ¡ARPAL V2 PWA completamente listo para push notifications!');
         } else {
-          console.log('⚠️ OneSignal aún no está listo - revisa la configuración');
+          console.log('⚠️ V16: OneSignal aún no está listo - revisa la configuración');
         }
       }
     }, 5000);
