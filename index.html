@@ -4,15 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Arpal Sounds</title>
+  
+  <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
+  
+  <!-- Icons -->
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png">
-  <link rel="apple-touch-icon" href="/icon-192x192.png">
+  
+  <!-- iOS específico -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/icon-192x192.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="/icon-192x192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/icon-192x192.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/icon-192x192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Arpal">
+  
+  <!-- PWA Meta -->
   <meta name="theme-color" content="#FFFFFF">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Arpal">
   <meta name="description" content="Soundscapes and Meditations">
 
   <style>
@@ -75,212 +86,258 @@
   ></iframe>
 
   <script>
-    // ============= CONFIGURACIÓN ONESIGNAL =============
-    console.log('🚀 ARPAL V2 - OneSignal con API v16 corregida');
+    // ============= DETECCIÓN PLATAFORMA =============
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const iOSVersion = isIOS ? parseFloat((navigator.userAgent.match(/OS (\d+)_/) || [])[1]) : null;
+    const isStandalone = window.navigator.standalone === true;
+    const isIOSPWA = isIOS && isStandalone;
     
+    console.log('🚀 ARPAL V3 - iOS PWA Optimizado');
+    console.log('📱 Plataforma:', { isIOS, iOSVersion, isStandalone, isIOSPWA });
+    
+    // ============= CONFIGURACIÓN ONESIGNAL =============
     let oneSignalInitialized = false;
     
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(function(OneSignal) {
-      console.log('📡 OneSignal SDK v16 cargado, inicializando...');
+      console.log('📡 OneSignal SDK v16 cargando...');
       
       OneSignal.init({
         appId: "49999010-fa62-443a-914d-7326000e6fb4",
         safari_web_id: "web.onesignal.auto.1172fa5f-6e39-45ba-9a29-ceb4d8311220",
-        notifyButton: {
-          enable: false // Desactivado - usamos botón personalizado de Framer
-        },
-        allowLocalhostAsSecureOrigin: true
+        
+        // Service Worker configuración
+        serviceWorkerPath: '/OneSignalSDKWorker.js',
+        serviceWorkerUpdaterPath: '/OneSignalSDKWorker.js',
+        
+        // Configuración push
+        notifyButton: { enable: false },
+        allowLocalhostAsSecureOrigin: true,
+        
+        // iOS específico
+        autoRegister: isIOSPWA, // Auto register solo en iOS PWA
+        welcomeNotification: { disable: true },
+        persistNotification: true
+        
       }).then(function() {
-        console.log('✅ OneSignal v16 inicializado exitosamente');
+        console.log('✅ OneSignal v16 inicializado');
         oneSignalInitialized = true;
         
-        // Log de funciones disponibles para debugging
-        console.log('🔍 Funciones OneSignal v16 disponibles:', {
+        // Log de capacidades disponibles
+        console.log('🔍 OneSignal capacidades:', {
           Notifications: !!window.OneSignal.Notifications,
           User: !!window.OneSignal.User,
-          login: typeof window.OneSignal.login
+          login: typeof window.OneSignal.login,
+          platform: isIOSPWA ? 'iOS PWA' : isIOS ? 'iOS Safari' : 'Other'
         });
         
-        // Evento personalizado para notificar que está listo
+        // Evento de listo
         window.dispatchEvent(new CustomEvent('oneSignalReady'));
         
       }).catch(function(error) {
-        console.error('❌ Error inicializando OneSignal v16:', error);
+        console.error('❌ Error OneSignal init:', error);
       });
     });
 
-    // ============= FUNCIONES PUSH NOTIFICATIONS (API v16) =============
+    // ============= FUNCIONES PUSH NOTIFICATIONS =============
     
     async function checkPushNotificationStatus() {
-      console.log('🔍 V16: Verificando estado de push notifications...');
+      console.log('🔍 Verificando estado push notifications...');
       
       if (!oneSignalInitialized || !window.OneSignal) {
-        console.log('⚠️ OneSignal v16 no está listo aún');
+        console.log('⚠️ OneSignal no listo');
         return false;
       }
       
       try {
-        // Método 1: Intentar con la nueva API v16
-        if (window.OneSignal.Notifications && window.OneSignal.Notifications.permission) {
-          const permission = await window.OneSignal.Notifications.permission;
-          const isEnabled = permission === 'granted';
-          console.log('📊 V16 Push estado:', isEnabled, 'permission:', permission);
-          return isEnabled;
-        }
-        
-        // Método 2: Fallback - intentar método directo
-        if (typeof window.OneSignal.getPermission === 'function') {
-          const permission = await window.OneSignal.getPermission();
-          const isEnabled = permission === 'granted';
-          console.log('📊 V16 Push estado (fallback):', isEnabled, 'permission:', permission);
-          return isEnabled;
-        }
-        
-        // Método 3: Último fallback - verificar Notification API nativa
+        // Método 1: API nativa (más confiable)
         if ('Notification' in window) {
-          const isEnabled = Notification.permission === 'granted';
-          console.log('📊 Push estado (nativo):', isEnabled, 'permission:', Notification.permission);
-          return isEnabled;
+          const nativePermission = Notification.permission;
+          console.log('📊 Permiso nativo:', nativePermission);
+          
+          if (nativePermission === 'granted') {
+            return true;
+          }
         }
         
-        console.log('⚠️ No se pudo verificar el estado de push notifications');
+        // Método 2: OneSignal API
+        if (window.OneSignal.Notifications && window.OneSignal.Notifications.permission) {
+          try {
+            const osPermission = await window.OneSignal.Notifications.permission;
+            console.log('📊 Permiso OneSignal:', osPermission);
+            return osPermission === 'granted';
+          } catch (e) {
+            console.log('⚠️ Error OneSignal permission check:', e);
+          }
+        }
+        
         return false;
         
       } catch (error) {
-        console.error('❌ Error verificando push status v16:', error);
+        console.error('❌ Error verificando push status:', error);
         return false;
       }
     }
     
     async function subscribeToPushNotifications(userId = null) {
-      console.log('📱 🚀 V16: INICIANDO SUSCRIPCIÓN A PUSH NOTIFICATIONS...');
+      console.log('📱 INICIANDO SUSCRIPCIÓN PUSH - Plataforma:', isIOSPWA ? 'iOS PWA' : 'Standard');
       
       if (!oneSignalInitialized || !window.OneSignal) {
-        console.error('❌ OneSignal v16 no está disponible para suscripción');
+        console.error('❌ OneSignal no disponible');
         return false;
       }
       
       try {
-        // Método 1: Primero intentar con API nativa (más confiable)
-        if ('Notification' in window) {
-          console.log('🎯 V16: Usando API nativa del navegador directamente');
-          
-          if (Notification.permission === 'granted') {
-            console.log('✅ V16: Usuario ya tiene permisos nativos');
-            await configureArpalTags(userId);
-            return true;
-          }
-          
-          if (Notification.permission === 'default') {
-            console.log('🎯 V16: Solicitando permiso nativo...');
-            const permission = await Notification.requestPermission();
-            console.log('📋 V16: Resultado nativo:', permission);
-            
-            if (permission === 'granted') {
-              console.log('🎉 V16: ¡Permiso nativo concedido!');
-              
-              // Registrar con OneSignal después del permiso nativo
-              if (window.OneSignal && window.OneSignal.User) {
-                try {
-                  await configureArpalTags(userId);
-                } catch (e) {
-                  console.log('⚠️ V16: Error configurando OneSignal (no crítico):', e);
-                }
-              }
-              
-              return true;
-            }
-          }
+        // MÉTODO ESPECÍFICO PARA iOS PWA
+        if (isIOSPWA) {
+          return await subscribeIOSPWA(userId);
         }
         
-        // Método 2: Fallback con OneSignal si está disponible
-        if (window.OneSignal.Notifications && window.OneSignal.Notifications.requestPermission) {
-          console.log('🎯 V16: Fallback - Usando OneSignal.Notifications.requestPermission()');
-          
-          try {
-            const result = await window.OneSignal.Notifications.requestPermission();
-            console.log('📋 V16: Resultado OneSignal:', result);
-            
-            if (result) {
-              await configureArpalTags(userId);
-              return true;
-            }
-          } catch (error) {
-            console.log('⚠️ V16: Error con OneSignal requestPermission:', error);
-          }
-        }
-        
-        // Método 2: Fallback con API nativa del navegador
-        if ('Notification' in window && Notification.permission === 'default') {
-          console.log('🎯 V16: Usando Notification API nativa como fallback');
-          const permission = await Notification.requestPermission();
-          console.log('📋 V16: Resultado nativo:', permission);
-          
-          if (permission === 'granted') {
-            await configureArpalTags(userId);
-            return true;
-          }
-        }
-        
-        console.log('❌ V16: Usuario rechazó las notificaciones');
-        return false;
+        // MÉTODO ESTÁNDAR para otras plataformas
+        return await subscribeStandard(userId);
         
       } catch (error) {
-        console.error('❌ V16: Error durante suscripción:', error);
+        console.error('❌ Error durante suscripción:', error);
         return false;
       }
     }
     
-    async function configureArpalTags(userId) {
-      console.log('🏷️ V16: Configurando tags de Arpal...');
+    // Suscripción específica iOS PWA
+    async function subscribeIOSPWA(userId) {
+      console.log('🍎 Suscripción iOS PWA iniciada...');
       
       try {
-        // Configurar tags
-        if (window.OneSignal.User && window.OneSignal.User.addTags) {
-          const tags = {
-            'app': 'arpal_sounds',
-            'subscription_date': new Date().toISOString(),
-            'language': 'es',
-            'platform': 'web'
-          };
+        // Paso 1: Solicitar permiso nativo iOS
+        if (Notification.permission === 'default') {
+          console.log('🔔 Solicitando permiso nativo iOS...');
+          const permission = await Notification.requestPermission();
+          console.log('📋 Resultado iOS nativo:', permission);
           
+          if (permission !== 'granted') {
+            console.log('❌ Permiso iOS denegado');
+            return false;
+          }
+        } else if (Notification.permission === 'granted') {
+          console.log('✅ Permiso iOS ya concedido');
+        } else {
+          console.log('❌ Permisos iOS bloqueados');
+          return false;
+        }
+        
+        // Paso 2: Configurar OneSignal para iOS
+        await configureArpalTags(userId, 'ios_pwa');
+        
+        // Paso 3: Notificación de prueba iOS
+        setTimeout(() => {
+          new Notification('🎉 Arpal Notifications', {
+            body: 'Notificaciones activadas en iOS!',
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            tag: 'arpal-ios-success',
+            requireInteraction: false
+          });
+        }, 1000);
+        
+        console.log('✅ iOS PWA suscripción exitosa');
+        return true;
+        
+      } catch (error) {
+        console.error('❌ Error iOS PWA subscription:', error);
+        return false;
+      }
+    }
+    
+    // Suscripción estándar
+    async function subscribeStandard(userId) {
+      console.log('🌐 Suscripción estándar iniciada...');
+      
+      try {
+        // Método 1: API nativa primero
+        if ('Notification' in window && Notification.permission === 'default') {
+          console.log('🔔 Solicitando permiso nativo...');
+          const permission = await Notification.requestPermission();
+          console.log('📋 Resultado nativo:', permission);
+          
+          if (permission === 'granted') {
+            await configureArpalTags(userId, 'standard');
+            return true;
+          }
+        }
+        
+        // Método 2: OneSignal API
+        if (window.OneSignal.Notifications && window.OneSignal.Notifications.requestPermission) {
+          console.log('🎯 Usando OneSignal requestPermission...');
+          const result = await window.OneSignal.Notifications.requestPermission();
+          console.log('📋 Resultado OneSignal:', result);
+          
+          if (result) {
+            await configureArpalTags(userId, 'onesignal');
+            return true;
+          }
+        }
+        
+        return false;
+        
+      } catch (error) {
+        console.error('❌ Error standard subscription:', error);
+        return false;
+      }
+    }
+    
+    // Configurar tags y usuario
+    async function configureArpalTags(userId, method) {
+      console.log('🏷️ Configurando tags Arpal...', method);
+      
+      try {
+        const tags = {
+          'app': 'arpal_sounds',
+          'subscription_date': new Date().toISOString(),
+          'language': 'es',
+          'platform': 'web',
+          'method': method,
+          'device': isIOSPWA ? 'ios_pwa' : isIOS ? 'ios_safari' : 'other'
+        };
+        
+        if (iOSVersion) {
+          tags['ios_version'] = iOSVersion;
+        }
+        
+        // Configurar tags en OneSignal
+        if (window.OneSignal.User && window.OneSignal.User.addTags) {
           await window.OneSignal.User.addTags(tags);
-          console.log('✅ V16: Tags configurados:', tags);
+          console.log('✅ Tags configurados:', tags);
         }
         
         // Configurar userId
         if (userId && window.OneSignal.login) {
           await window.OneSignal.login(userId.toString());
-          console.log('👤 V16: Usuario logueado con ID:', userId);
+          console.log('👤 Usuario logueado:', userId);
         }
         
-        console.log('🎊 V16: CONFIGURACIÓN COMPLETA!');
+        console.log('🎊 Configuración Arpal completa');
         
       } catch (error) {
-        console.log('⚠️ V16: Error configurando tags/userId (no crítico):', error);
+        console.log('⚠️ Error configurando tags (no crítico):', error);
       }
     }
     
     async function setUserIdForNotifications(userId) {
-      console.log('👤 V16: Configurando User ID:', userId);
+      console.log('👤 Configurando User ID:', userId);
       
       if (!oneSignalInitialized || !window.OneSignal || !userId) {
-        console.log('⚠️ V16: OneSignal no listo o userId inválido');
+        console.log('⚠️ OneSignal no listo o userId inválido');
         return false;
       }
       
       try {
         if (window.OneSignal.login) {
           await window.OneSignal.login(userId.toString());
-          console.log('✅ V16: Usuario logueado exitosamente');
+          console.log('✅ User ID configurado');
           return true;
-        } else {
-          console.log('⚠️ V16: OneSignal.login no disponible');
-          return false;
         }
+        return false;
       } catch (error) {
-        console.error('❌ V16: Error configurando User ID:', error);
+        console.error('❌ Error configurando User ID:', error);
         return false;
       }
     }
@@ -293,29 +350,27 @@
 
     function sendMessageToFramer(message) {
       if (iframe && iframe.contentWindow) {
-        console.log('📤 Enviando mensaje a Framer:', message.type);
+        console.log('📤 → Framer:', message.type);
         iframe.contentWindow.postMessage(message, targetOrigin);
       } else {
-        console.error('❌ No se pudo enviar mensaje al iframe de Framer');
+        console.error('❌ No se pudo enviar mensaje a Framer');
       }
     }
 
     // Escuchar mensajes de Framer
     window.addEventListener('message', function(event) {
-      // Verificar origen por seguridad
       if (event.origin !== targetOrigin) {
         return;
       }
       
       try {
         if (event.data && event.data.type) {
-          console.log('📥 V16: Mensaje de Framer:', event.data.type);
+          console.log('📥 ← Framer:', event.data.type);
           
           switch(event.data.type) {
             
             // ===== GESTIÓN DE SESIÓN =====
             case 'setSessionData':
-              console.log('💾 Guardando datos de sesión');
               if (event.data.sessionData) {
                 localStorage.setItem(SESSION_KEY, JSON.stringify(event.data.sessionData));
                 sessionStorage.setItem(SESSION_KEY, JSON.stringify(event.data.sessionData));
@@ -326,7 +381,6 @@
               break;
               
             case 'getSessionData':
-              console.log('📖 Recuperando datos de sesión');
               const sessionData = localStorage.getItem(SESSION_KEY);
               sendMessageToFramer({
                 type: 'sessionDataResponse',
@@ -335,25 +389,24 @@
               break;
               
             case 'openPopup':
-              console.log('🪟 Abriendo popup:', event.data.url);
               if (event.data.url) {
                 window.open(event.data.url, "_blank", "width=600,height=700");
               }
               break;
 
-            // ===== PUSH NOTIFICATIONS V16 =====
+            // ===== PUSH NOTIFICATIONS =====
             case 'oneSignalIsPushEnabled':
-              console.log('🔍 V16: SOLICITUD - Verificar estado push');
+              console.log('🔍 SOLICITUD: Verificar estado push');
               
               checkPushNotificationStatus().then(result => {
-                console.log('📊 V16: Enviando estado a Framer:', result);
+                console.log('📊 Estado push:', result);
                 sendMessageToFramer({
                   type: 'oneSignalIsPushEnabledResponse',
                   requestId: event.data.requestId,
                   result: result
                 });
               }).catch(error => {
-                console.error('❌ V16: Error verificando estado:', error);
+                console.error('❌ Error verificando estado:', error);
                 sendMessageToFramer({
                   type: 'oneSignalIsPushEnabledResponse',
                   requestId: event.data.requestId,
@@ -363,18 +416,18 @@
               break;
 
             case 'oneSignalShowPrompt':
-              console.log('🎯 V16: SOLICITUD - Suscribir a push notifications');
-              console.log('👤 V16: User ID recibido:', event.data.userId);
+              console.log('🎯 SOLICITUD: Suscribir push notifications');
+              console.log('👤 User ID:', event.data.userId);
               
               subscribeToPushNotifications(event.data.userId).then(result => {
-                console.log('📋 V16: Enviando resultado a Framer:', result);
+                console.log('📋 Resultado suscripción:', result);
                 sendMessageToFramer({
                   type: 'oneSignalShowPromptResponse',
                   requestId: event.data.requestId,
                   result: result
                 });
               }).catch(error => {
-                console.error('❌ V16: Error en suscripción:', error);
+                console.error('❌ Error suscripción:', error);
                 sendMessageToFramer({
                   type: 'oneSignalShowPromptResponse',
                   requestId: event.data.requestId,
@@ -384,7 +437,7 @@
               break;
 
             case 'oneSignalSetUserId':
-              console.log('👤 V16: SOLICITUD - Configurar User ID');
+              console.log('👤 SOLICITUD: Configurar User ID');
               
               setUserIdForNotifications(event.data.userId).then(result => {
                 sendMessageToFramer({
@@ -393,7 +446,7 @@
                   result: result
                 });
               }).catch(error => {
-                console.error('❌ V16: Error configurando User ID:', error);
+                console.error('❌ Error configurando User ID:', error);
                 sendMessageToFramer({
                   type: 'oneSignalSetUserIdResponse',
                   requestId: event.data.requestId,
@@ -403,19 +456,18 @@
               break;
 
             default:
-              // Ignorar mensajes no reconocidos silenciosamente
+              // Ignorar mensajes no reconocidos
               break;
           }
         }
       } catch (error) {
-        console.error('❌ V16: Error procesando mensaje de Framer:', error);
+        console.error('❌ Error procesando mensaje Framer:', error);
       }
     });
 
     // ============= GESTIÓN DE SESIONES =============
     
     function restoreUserSession() {
-      console.log('🔄 Restaurando sesión de usuario...');
       try {
         const sessionData = localStorage.getItem(SESSION_KEY);
         if (sessionData) {
@@ -426,25 +478,20 @@
             });
             console.log('✅ Sesión restaurada');
           }, 2000);
-        } else {
-          console.log('ℹ️ No hay sesión previa para restaurar');
         }
       } catch (error) {
         console.error('❌ Error restaurando sesión:', error);
       }
     }
 
-    // Restaurar sesión cuando la página se vuelve visible
     document.addEventListener('visibilitychange', function() {
       if (!document.hidden) {
-        console.log('👀 Página visible, restaurando sesión...');
         restoreUserSession();
       }
     });
 
-    // Restaurar sesión cuando el iframe carga
     iframe.onload = function() { 
-      console.log('✅ Iframe de Framer cargado correctamente');
+      console.log('✅ Iframe Framer cargado');
       restoreUserSession(); 
     };
 
@@ -454,10 +501,10 @@
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('/service-worker.js')
           .then(function(registration) {
-            console.log('✅ Service Worker registrado exitosamente:', registration.scope);
+            console.log('✅ Service Worker registrado:', registration.scope);
           })
           .catch(function(err) {
-            console.log('⚠️ Service Worker no pudo registrarse:', err);
+            console.log('⚠️ Service Worker error:', err);
           });
       });
     }
@@ -469,78 +516,109 @@
       document.documentElement.style.setProperty('--dvh', height);
     }
 
-    // Aplicar ajuste de viewport
     updateViewportHeight();
     window.addEventListener('resize', updateViewportHeight);
     window.addEventListener('orientationchange', function() {
-      setTimeout(updateViewportHeight, 100); // Pequeño delay para orientationchange
+      setTimeout(updateViewportHeight, 100);
     });
 
-    // ============= FUNCIONES DE DEBUGGING =============
+    // ============= DEBUGGING ESPECÍFICO iOS =============
     
-    // Función para probar push notifications manualmente desde la consola
-    window.testArpalPushNotifications = function() {
-      console.log('🧪 V16: PRUEBA MANUAL - Iniciando test de push notifications...');
-      subscribeToPushNotifications('test_user_' + Date.now()).then(result => {
-        console.log('🧪 V16: RESULTADO TEST:', result ? '✅ ÉXITO' : '❌ FALLO');
-      });
-    };
-    
-    // Función para verificar estado completo
-    window.checkArpalStatus = function() {
-      console.log('🔍 V16: ESTADO COMPLETO DE ARPAL PWA:', {
-        OneSignal: !!window.OneSignal,
-        initialized: oneSignalInitialized,
-        iframe: !!iframe,
-        notifications: window.OneSignal ? {
-          available: !!window.OneSignal.Notifications,
-          permission: window.OneSignal.Notifications ? 'Revisar en consola' : 'no disponible',
-          requestPermission: typeof (window.OneSignal.Notifications && window.OneSignal.Notifications.requestPermission),
-        } : 'OneSignal no disponible',
-        user: window.OneSignal ? {
-          available: !!window.OneSignal.User,
-          addTags: typeof (window.OneSignal.User && window.OneSignal.User.addTags),
-          login: typeof window.OneSignal.login
-        } : 'OneSignal no disponible',
-        nativeNotifications: 'Notification' in window ? Notification.permission : 'no disponible'
+    window.debugArpalPush = function() {
+      console.log('🔍 ARPAL PUSH DEBUG:');
+      console.log('📱 Plataforma:', {
+        isIOS,
+        iOSVersion,
+        isStandalone,
+        isIOSPWA,
+        userAgent: navigator.userAgent
       });
       
-      // Verificar permisos actuales
-      if (window.OneSignal && window.OneSignal.Notifications) {
-        window.OneSignal.Notifications.permission.then(perm => {
-          console.log('📋 V16: Permission actual:', perm);
-        }).catch(e => console.log('⚠️ V16: Error obteniendo permission:', e));
+      console.log('🔔 Notificaciones:', {
+        nativeAPI: 'Notification' in window,
+        permission: Notification?.permission,
+        oneSignalLoaded: !!window.OneSignal,
+        oneSignalInit: oneSignalInitialized
+      });
+      
+      if (window.OneSignal) {
+        console.log('📡 OneSignal:', {
+          Notifications: !!window.OneSignal.Notifications,
+          User: !!window.OneSignal.User,
+          login: typeof window.OneSignal.login
+        });
       }
+      
+      // Service Workers
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          console.log('⚙️ Service Workers:', regs.length);
+          regs.forEach((reg, i) => {
+            console.log(`SW ${i}:`, {
+              scope: reg.scope,
+              script: reg.active?.scriptURL,
+              state: reg.active?.state
+            });
+          });
+        });
+      }
+      
+      // Test notification
+      if (Notification.permission === 'granted') {
+        new Notification('🧪 Arpal Debug Test', {
+          body: 'Test desde función debug',
+          icon: '/icon-192x192.png',
+          tag: 'debug-test'
+        });
+        console.log('📬 Notificación de prueba enviada');
+      } else {
+        console.log('⚠️ No hay permisos para test notification');
+      }
+    };
+    
+    window.testArpalPushNotifications = function() {
+      console.log('🧪 TEST MANUAL: Push notifications...');
+      subscribeToPushNotifications('test_user_' + Date.now()).then(result => {
+        console.log('🧪 RESULTADO TEST:', result ? '✅ ÉXITO' : '❌ FALLO');
+      });
     };
 
     // ============= INICIALIZACIÓN FINAL =============
     
-    console.log('🚀 ARPAL V2 PWA inicializado correctamente');
-    console.log('💡 Comandos de debugging disponibles:');
-    console.log('   - window.testArpalPushNotifications() // Probar suscripción manualmente');
-    console.log('   - window.checkArpalStatus() // Ver estado completo');
+    console.log('🚀 Arpal V3 PWA inicializado');
+    console.log('💡 Comandos debug disponibles:');
+    console.log('   - window.debugArpalPush() // Debug completo');
+    console.log('   - window.testArpalPushNotifications() // Test manual');
     
-    // Monitoreo inicial del estado (primeros 30 segundos)
-    let statusCheckCount = 0;
-    const statusMonitor = setInterval(() => {
-      statusCheckCount++;
-      console.log(`📊 V16: [Monitor ${statusCheckCount}/6] OneSignal:`, {
-        loaded: !!window.OneSignal,
-        initialized: oneSignalInitialized,
-        ready: oneSignalInitialized && !!window.OneSignal
+    // Auto-debug en iOS para facilitar troubleshooting
+    if (isIOSPWA) {
+      console.log('🍎 iOS PWA detectado - Auto-debug en 3 segundos...');
+      setTimeout(() => {
+        window.debugArpalPush();
+      }, 3000);
+    }
+    
+    // Monitoreo de estado
+    let statusCount = 0;
+    const monitor = setInterval(() => {
+      statusCount++;
+      console.log(`📊 [${statusCount}/6] Estado:`, {
+        oneSignalLoaded: !!window.OneSignal,
+        oneSignalInit: oneSignalInitialized,
+        platform: isIOSPWA ? 'iOS PWA' : isIOS ? 'iOS Safari' : 'Other'
       });
       
-      if (statusCheckCount >= 6) {
-        clearInterval(statusMonitor);
-        console.log('🏁 V16: Monitoreo inicial completado');
+      if (statusCount >= 6) {
+        clearInterval(monitor);
+        console.log('🏁 Monitoreo inicial completado');
         
         if (oneSignalInitialized) {
-          console.log('🎉 ¡ARPAL V2 PWA completamente listo para push notifications!');
+          console.log('🎉 Arpal V3 completamente listo para push notifications!');
         } else {
-          console.log('⚠️ V16: OneSignal aún no está listo - revisa la configuración');
+          console.log('⚠️ OneSignal aún no listo - revisar configuración');
         }
       }
-    }, 5000);
+    }, 3000);
     
   </script>
 </body>
