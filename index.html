@@ -423,11 +423,15 @@
         OneSignal: !!window.OneSignal,
         initialized: oneSignalInitialized,
         iframe: !!iframe,
-        functions: window.OneSignal ? {
-          isPushEnabled: typeof window.OneSignal.isPushNotificationsEnabled,
-          showPrompt: typeof window.OneSignal.showNativePrompt,
-          setUserId: typeof window.OneSignal.setExternalUserId,
-          sendTags: typeof window.OneSignal.sendTags
+        notifications: window.OneSignal ? {
+          available: !!window.OneSignal.Notifications,
+          permission: window.OneSignal.Notifications ? window.OneSignal.Notifications.permission : 'no disponible',
+          requestPermission: typeof (window.OneSignal.Notifications && window.OneSignal.Notifications.requestPermission),
+        } : 'OneSignal no disponible',
+        user: window.OneSignal ? {
+          available: !!window.OneSignal.User,
+          addTags: typeof (window.OneSignal.User && window.OneSignal.User.addTags),
+          login: typeof window.OneSignal.login
         } : 'OneSignal no disponible'
       });
     };
