@@ -23,6 +23,7 @@
       overflow: hidden;
       background-color: #000000;
     }
+    
     iframe {
       width: 100lvw;
       height: 100lvh;
@@ -32,11 +33,54 @@
       left: 0;
       right: 0;
       bottom: 0;
+      background-color: #000;
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
+    
+    /* Safe Area Mode (Sone style) - Original */
     @supports(padding: max(0px)) {
       body, iframe {
         padding-top: env(safe-area-inset-top);
         height: calc(100lvh - env(safe-area-inset-top));
+      }
+    }
+    
+    /* Mejoras del segundo código */
+    iframe {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh; /* Usamos vh */
+      border: none;
+      background-color: #000;
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    /* Para Safari (no PWA): usar viewport dinámico */
+    @supports (-webkit-touch-callout: none) {
+      @media not all and (display-mode: standalone) {
+        iframe {
+          height: 100dvh;
+        }
+      }
+    }
+    
+    /* iOS PWA FIX: asegurar 100vh sin espacios */
+    @supports (-webkit-touch-callout: none) {
+      html,
+      body,
+      iframe {
+        height: 100vh !important;
+        max-height: 100vh !important;
+        min-height: 100vh !important;
+        overflow: hidden !important;
       }
     }
   </style>
@@ -129,7 +173,7 @@
         console.log('OneSignal deferred function executing...');
         
         window.OneSignal.init({
-          appId: "a18ba484-72a8-4fe3-b51c-7eecfcf51199",
+          appId: "49999010-fa62-443a-914d-7326000e6fb4",
           notifyButton: { enable: false },
           allowLocalhostAsSecureOrigin: true,
           serviceWorkerParam: { scope: "/" },
@@ -368,6 +412,20 @@
               console.error('ServiceWorker registration failed: ', err);
             });
         });
+      }
+
+      // Dynamic viewport adjustment for dvh units
+      function updateViewportHeight() {
+        document.documentElement.style.setProperty('--dvh', window.innerHeight + 'px');
+      }
+
+      if ('dvh' === 'dvh') {
+        // Set initial value
+        updateViewportHeight();
+        
+        // Update on resize or orientation change
+        window.addEventListener('resize', updateViewportHeight);
+        window.addEventListener('orientationchange', updateViewportHeight);
       }
 
       // Log de depuración mejorado
