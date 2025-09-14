@@ -16,46 +16,23 @@
   <meta name="description" content="Soundscapes and Meditations">
 
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      background-color: #000000;
+    body, html { 
+      margin: 0; 
+      padding: 0; 
+      height: 100%; 
+      overflow: hidden; 
+      background-color: #000; 
     }
     
-    iframe {
-      width: 100lvw;
-      height: 100lvh;
-      border: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #000;
-      touch-action: manipulation;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-    
-    /* Safe Area Mode (Sone style) - Original */
-    @supports(padding: max(0px)) {
-      body, iframe {
-        padding-top: env(safe-area-inset-top);
-        height: calc(100lvh - env(safe-area-inset-top));
-      }
-    }
-    
-    /* Mejoras del segundo código */
-    iframe {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh; /* Usamos vh */
-      border: none;
+    iframe { 
+      width: 100lvw; 
+      height: 100dvh; 
+      border: none; 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      right: 0; 
+      bottom: 0; 
       background-color: #000;
       touch-action: manipulation;
       -webkit-touch-callout: none;
@@ -85,15 +62,21 @@
     }
   </style>
 
-  <!-- OneSignal -->
-  <script>
-    window.OneSignal = window.OneSignal || {};
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalProxy = null; // Inicializar como null
-  </script>
+  <!-- OneSignal - Tu código correcto -->
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
-    // Función para crear OneSignalProxy cuando OneSignal esté listo
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "49999010-fa62-443a-914d-7326000e6fb4",
+        safari_web_id: "web.onesignal.auto.1172fa5f-6e39-45ba-9a29-ceb4d8311220",
+        notifyButton: {
+          enable: true,
+        },
+      });
+    });
+
+    // Crear OneSignalProxy para comunicación con iframe
     function createOneSignalProxy() {
       console.log('Creando OneSignalProxy...');
       
@@ -162,63 +145,16 @@
       console.log('OneSignalProxy created successfully:', window.OneSignalProxy);
     }
 
-    function ensureOneSignalIsGlobal() {
-      console.log('ensureOneSignalIsGlobal called');
+    // Crear proxy cuando OneSignal esté listo
+    OneSignalDeferred.push(function(OneSignal) {
+      console.log('OneSignal listo, creando proxy...');
+      createOneSignalProxy();
+      window.oneSignalInitialized = true;
       
-      if (!window.OneSignal) {
-        window.OneSignal = window.OneSignal || {};
-      }
-      
-      window.OneSignalDeferred.push(function() {
-        console.log('OneSignal deferred function executing...');
-        
-        window.OneSignal.init({
-          appId: "49999010-fa62-443a-914d-7326000e6fb4",
-          notifyButton: { enable: false },
-          allowLocalhostAsSecureOrigin: true,
-          serviceWorkerParam: { scope: "/" },
-          serviceWorkerPath: "/OneSignalSDKWorker.js",
-        });
-        
-        // Intentar crear OneSignalProxy inmediatamente y luego en intervalos
-        const tryCreateProxy = () => {
-          if (window.OneSignal && window.OneSignal.isPushNotificationsEnabled) {
-            console.log('OneSignal está listo, creando proxy...');
-            window.oneSignalInitialized = true;
-            createOneSignalProxy();
-            
-            const event = new CustomEvent('onesignalInitialized');
-            window.dispatchEvent(event);
-            console.log('OneSignal inicializado correctamente');
-            return true;
-          }
-          return false;
-        };
-        
-        // Intentar inmediatamente
-        if (!tryCreateProxy()) {
-          // Si no funciona, intentar cada 500ms hasta 10 veces
-          let attempts = 0;
-          const interval = setInterval(() => {
-            attempts++;
-            console.log(`Intento ${attempts} de crear OneSignalProxy...`);
-            
-            if (tryCreateProxy() || attempts >= 10) {
-              clearInterval(interval);
-              if (attempts >= 10) {
-                console.error('No se pudo crear OneSignalProxy después de 10 intentos');
-                // Crear proxy básico como fallback
-                createOneSignalProxy();
-              }
-            }
-          }, 500);
-        }
-      });
-    }
-    
-    ensureOneSignalIsGlobal();
-    document.addEventListener('DOMContentLoaded', ensureOneSignalIsGlobal);
-    setTimeout(ensureOneSignalIsGlobal, 2000);
+      const event = new CustomEvent('onesignalInitialized');
+      window.dispatchEvent(event);
+      console.log('OneSignal inicializado correctamente');
+    });
   </script>
 </head>
 <body>
@@ -414,7 +350,7 @@
         });
       }
 
-      // Dynamic viewport adjustment for dvh units
+      // Dynamic viewport adjustment for dvh units (del segundo código)
       function updateViewportHeight() {
         document.documentElement.style.setProperty('--dvh', window.innerHeight + 'px');
       }
@@ -431,22 +367,6 @@
       // Log de depuración mejorado
       console.log('PWA Script initialized');
       console.log('OneSignal available:', !!window.OneSignalDeferred);
-      
-      // Verificar estado cada 3 segundos durante los primeros 15 segundos
-      let checkCount = 0;
-      const statusChecker = setInterval(() => {
-        checkCount++;
-        console.log(`[${checkCount}] OneSignal status:`, {
-          OneSignal: !!window.OneSignal,
-          OneSignalDeferred: !!window.OneSignalDeferred,
-          OneSignalProxy: !!window.OneSignalProxy,
-          oneSignalInitialized: !!window.oneSignalInitialized
-        });
-        
-        if (checkCount >= 5) {
-          clearInterval(statusChecker);
-        }
-      }, 3000);
       
     })();
   </script>
