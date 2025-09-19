@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Arpal App</title>
+  <title>Aural Soundscapes</title>
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
@@ -19,7 +19,7 @@
   <link rel="apple-touch-icon" sizes="120x120" href="/icon-192x192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Arpal">
+  <meta name="apple-mobile-web-app-title" content="Aural">
   
   <!-- PWA Meta -->
   <meta name="theme-color" content="#00000">
@@ -79,7 +79,7 @@
 <body>
   <iframe 
     id="framerContent" 
-    src="https://arpalsound.framer.website/" 
+    src="https://auralapp.framer.website/" 
     allowfullscreen 
     allow="geolocation; camera; microphone; storage-access; notifications"
     sandbox="allow-same-origin allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
@@ -92,7 +92,7 @@
     const isStandalone = window.navigator.standalone === true;
     const isIOSPWA = isIOS && isStandalone;
     
-    console.log('🚀 ARPAL V3 - iOS PWA Optimizado');
+    console.log('🚀 AURAL V3 - iOS PWA Optimizado');
     console.log('📱 Plataforma:', { isIOS, iOSVersion, isStandalone, isIOSPWA });
     
     // ============= CONFIGURACIÓN ONESIGNAL =============
@@ -225,15 +225,15 @@
         }
         
         // Paso 2: Configurar OneSignal para iOS
-        await configureArpalTags(userId, 'ios_pwa');
+        await configureAuralTags(userId, 'ios_pwa');
         
         // Paso 3: Notificación de prueba iOS
         setTimeout(() => {
-          new Notification('🎉 Arpal Notifications', {
+          new Notification('🎉 Aural Notifications', {
             body: 'Notificaciones activadas en iOS!',
             icon: '/icon-192x192.png',
             badge: '/icon-192x192.png',
-            tag: 'arpal-ios-success',
+            tag: 'aural-ios-success',
             requireInteraction: false
           });
         }, 1000);
@@ -259,7 +259,7 @@
           console.log('📋 Resultado nativo:', permission);
           
           if (permission === 'granted') {
-            await configureArpalTags(userId, 'standard');
+            await configureAuralTags(userId, 'standard');
             return true;
           }
         }
@@ -271,7 +271,7 @@
           console.log('📋 Resultado OneSignal:', result);
           
           if (result) {
-            await configureArpalTags(userId, 'onesignal');
+            await configureAuralTags(userId, 'onesignal');
             return true;
           }
         }
@@ -285,12 +285,12 @@
     }
     
     // Configurar tags y usuario
-    async function configureArpalTags(userId, method) {
-      console.log('🏷️ Configurando tags Arpal...', method);
+    async function configureAuralTags(userId, method) {
+      console.log('🏷️ Configurando tags Aural...', method);
       
       try {
         const tags = {
-          'app': 'arpal_sounds',
+          'app': 'aural_sounds',
           'subscription_date': new Date().toISOString(),
           'language': 'es',
           'platform': 'web',
@@ -314,7 +314,7 @@
           console.log('👤 Usuario logueado:', userId);
         }
         
-        console.log('🎊 Configuración Arpal completa');
+        console.log('🎊 Configuración Aural completa');
         
       } catch (error) {
         console.log('⚠️ Error configurando tags (no crítico):', error);
@@ -344,9 +344,9 @@
 
     // ============= COMUNICACIÓN CON FRAMER =============
     
-    const SESSION_KEY = 'arpal_session_data';
+    const SESSION_KEY = 'aural_session_data';
     const iframe = document.getElementById('framerContent');
-    const targetOrigin = 'https://arpalsound.framer.website';
+    const targetOrigin = 'https://auralapp.framer.website';
 
     function sendMessageToFramer(message) {
       if (iframe && iframe.contentWindow) {
@@ -524,8 +524,8 @@
 
     // ============= DEBUGGING ESPECÍFICO iOS =============
     
-    window.debugArpalPush = function() {
-      console.log('🔍 ARPAL PUSH DEBUG:');
+    window.debugAuralPush = function() {
+      console.log('🔍 AURAL PUSH DEBUG:');
       console.log('📱 Plataforma:', {
         isIOS,
         iOSVersion,
@@ -565,7 +565,7 @@
       
       // Test notification
       if (Notification.permission === 'granted') {
-        new Notification('🧪 Arpal Debug Test', {
+        new Notification('🧪 Aural Debug Test', {
           body: 'Test desde función debug',
           icon: '/icon-192x192.png',
           tag: 'debug-test'
@@ -576,7 +576,7 @@
       }
     };
     
-    window.testArpalPushNotifications = function() {
+    window.testAuralPushNotifications = function() {
       console.log('🧪 TEST MANUAL: Push notifications...');
       subscribeToPushNotifications('test_user_' + Date.now()).then(result => {
         console.log('🧪 RESULTADO TEST:', result ? '✅ ÉXITO' : '❌ FALLO');
@@ -585,16 +585,16 @@
 
     // ============= INICIALIZACIÓN FINAL =============
     
-    console.log('🚀 Arpal V3 PWA inicializado');
+    console.log('🚀 Aural V3 PWA inicializado');
     console.log('💡 Comandos debug disponibles:');
-    console.log('   - window.debugArpalPush() // Debug completo');
-    console.log('   - window.testArpalPushNotifications() // Test manual');
+    console.log('   - window.debugAuralPush() // Debug completo');
+    console.log('   - window.testAuralPushNotifications() // Test manual');
     
     // Auto-debug en iOS para facilitar troubleshooting
     if (isIOSPWA) {
       console.log('🍎 iOS PWA detectado - Auto-debug en 3 segundos...');
       setTimeout(() => {
-        window.debugArpalPush();
+        window.debugAuralPush();
       }, 3000);
     }
     
@@ -613,7 +613,7 @@
         console.log('🏁 Monitoreo inicial completado');
         
         if (oneSignalInitialized) {
-          console.log('🎉 Arpal V3 completamente listo para push notifications!');
+          console.log('🎉 Aural V3 completamente listo para push notifications!');
         } else {
           console.log('⚠️ OneSignal aún no listo - revisar configuración');
         }
